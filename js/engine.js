@@ -770,15 +770,25 @@ function visit(p,pos){
 const divorceXinmo=p=>cmMul(p)<=0.3?5:CFG.divorceXinmo+(p.aff>=80?10:p.aff>=60?5:0);
 const keepCost=()=>Math.round(CFG.keepCost*rankMul());
 const splitCost=()=>Math.round(CFG.splitCost*rankMul());
+/* 挽留 / 放手都要再确认一次，免得误点（「再想想」回到原来的选择） */
+const confirmScene=(p,title,text,yes,back)=>({who:p,title,text,options:[{label:yes.label,hint:yes.hint,run:yes.run},{label:'再想想',hint:'回到刚才的选择',run(){queue.unshift(back())}}]});
 function splitScene(p){const c=splitCost();
+  const keep=()=>{S.silver-=c;p.aff=Math.max(p.aff,CFG.splitKeepAff);p.lastVisit=mi();logAdd(`挽回${p.name}`);result('挽回',`你备下厚礼，又陪了她好几日。${p.name}终究把和离书收了回去。\n（银两 −${c}，好感回到 ${p.aff}）`,p)};
+  const go=()=>{S.partners=S.partners.filter(q=>q!==p);S.xinmo=clamp(S.xinmo+CFG.splitXinmo,0,100);S.harmony=clamp(S.harmony-CFG.splitHarmony,0,100);logAdd(`与${p.name}和离`);
+      result('和离',`${p.name}收拾好行装，向你行了最后一礼。\n（心魔 +${CFG.splitXinmo}，后宅安宁 −${CFG.splitHarmony}）`,p)};
   return {who:p,title:`${p.name}提出和离`,text:`${p.name}把一纸和离书放在你面前：「殿下心里早已没有我，不如好聚好散。」\n（好感 ${p.aff}，${cmTxt(p)}）`,options:[
-    {label:'花钱挽留',hint:S.silver<c?`银两不够（需要 ${c}）`:`花费 银两 ${c}；${p.name}留下，好感回到 ${CFG.splitKeepAff}`,disabled:S.silver<c,run(){S.silver-=c;p.aff=Math.max(p.aff,CFG.splitKeepAff);p.lastVisit=mi();logAdd(`挽回${p.name}`);result('挽回',`你备下厚礼，又陪了她好几日。${p.name}终究把和离书收了回去。\n（银两 −${c}，好感回到 ${p.aff}）`,p)}},
-    {label:'同意和离',hint:`${p.name}离开；心魔 +${CFG.splitXinmo}，后宅安宁 −${CFG.splitHarmony}（她主动提的，比休离轻）`,run(){S.partners=S.partners.filter(q=>q!==p);S.xinmo=clamp(S.xinmo+CFG.splitXinmo,0,100);S.harmony=clamp(S.harmony-CFG.splitHarmony,0,100);logAdd(`与${p.name}和离`);
-      result('和离',`${p.name}收拾好行装，向你行了最后一礼。\n（心魔 +${CFG.splitXinmo}，后宅安宁 −${CFG.splitHarmony}）`,p)}}]}}
+    {label:'花钱挽留',hint:S.silver<c?`银两不够（需要 ${c}）`:`花费 银两 ${c}；${p.name}留下，好感回到 ${CFG.splitKeepAff}`,disabled:S.silver<c,run(){
+      queue.unshift(confirmScene(p,`挽留${p.name}？`,`你确定要花 银两 ${c} 挽留${p.name}吗？\n她会留下，好感回到 ${Math.max(p.aff,CFG.splitKeepAff)}。\n（现有银两 ${S.silver}）`,{label:'确定挽留',hint:`银两 −${c}`,run:keep},()=>splitScene(p)))}},
+    {label:'同意和离',hint:`${p.name}离开；心魔 +${CFG.splitXinmo}，后宅安宁 −${CFG.splitHarmony}（她主动提的，比休离轻）`,run(){
+      queue.unshift(confirmScene(p,`与${p.name}和离？`,`你确定要和${p.name}和离吗？\n她会离开，从此不再回来。\n（心魔 +${CFG.splitXinmo}，后宅安宁 −${CFG.splitHarmony}）`,{label:'确定和离',hint:`${p.name}离开`,run:go},()=>splitScene(p)))}}]}}
 function leaveScene(p){const c=keepCost();
+  const keep=()=>{S.silver-=c;p.lastVisit=mi();p.aff=clamp(p.aff+5,0,100);logAdd(`挽留${p.name}`);result('挽留',`你备了厚礼，亲自登门赔罪。${p.name}终究还是留了下来。\n（银两 −${c}，好感 +5）`,p)};
+  const go=()=>{S.partners=S.partners.filter(q=>q!==p);logAdd(`${p.name}离去`);result('离去',`${p.name}走了，没有回头。`,p)};
   return {who:p,title:`${p.name}要走`,text:`你已经半年没去看${p.name}了。\n${p.name}收拾了行装，托人带话：「既然殿下无意，我也不便久留。」\n（${cmTxt(p)}，好感 ${p.aff}）`,options:[
-    {label:'厚礼挽留',hint:S.silver<c?`银两不够（需要 ${c}）`:`花费 银两 ${c}；${p.name}留下，好感 +5`,disabled:S.silver<c,run(){S.silver-=c;p.lastVisit=mi();p.aff=clamp(p.aff+5,0,100);logAdd(`挽留${p.name}`);result('挽留',`你备了厚礼，亲自登门赔罪。${p.name}终究还是留了下来。\n（银两 −${c}，好感 +5）`,p)}},
-    {label:'让她走',hint:'没有惩罚，后宅空出一个位置',run(){S.partners=S.partners.filter(q=>q!==p);logAdd(`${p.name}离去`);result('离去',`${p.name}走了，没有回头。`,p)}}]}}
+    {label:'厚礼挽留',hint:S.silver<c?`银两不够（需要 ${c}）`:`花费 银两 ${c}；${p.name}留下，好感 +5`,disabled:S.silver<c,run(){
+      queue.unshift(confirmScene(p,`挽留${p.name}？`,`你确定要花 银两 ${c} 挽留${p.name}吗？\n她会留下，好感 +5。之后半年内再不去看她，她还会想走。\n（现有银两 ${S.silver}）`,{label:'确定挽留',hint:`银两 −${c}`,run:keep},()=>leaveScene(p)))}},
+    {label:'让她走',hint:'没有惩罚，后宅空出一个位置',run(){
+      queue.unshift(confirmScene(p,`让${p.name}走？`,`你确定让${p.name}走吗？\n她会离开，从此不再回来。`,{label:'确定让她走',hint:'没有惩罚，后宅空出一个位置',run:go},()=>leaveScene(p)))}}]}}
 function divorceScene(p){const x=divorceXinmo(p);
   return {who:p,title:`休离${p.name}`,text:`你真的要休离${p.name}吗？\n她会离开，从此不再回来。\n（心魔 +${x}，后宅安宁 −10。好感越深，心魔越重；已配不上门第的，心魔只 +5。）`,options:[
     {label:'确定休离',hint:`心魔 +${x}，后宅安宁 −10`,run(){S.partners=S.partners.filter(q=>q!==p);S.xinmo=clamp(S.xinmo+x,0,100);S.harmony=clamp(S.harmony-10,0,100);logAdd(`休离${p.name}`);
