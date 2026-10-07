@@ -1,4 +1,4 @@
-const APP_V=92;   // 打包时写入的版本号
+const APP_V=93;   // 打包时写入的版本号
 /* ================= 云端存档 =================
    用户名 + 6 位口令登录，每个用户 3 个存档位，存档放在 GitHub 私有仓库里（读写接口见 ghsave.js，它会替换下面的 cloudApi / cloudBeacon）。
    本机仍然保留一份当前存档（xw_save），断网时照常玩，联网后下次保存会自动补传。
@@ -83,27 +83,37 @@ let newV=0,updWarn=false;
 const verTxt=v=>(v/100).toFixed(2);          // 显示用：内部版本号 92 显示成 0.92，每次更新 +0.01
 const safeToUpd=()=>title||!S;                     // 没有进行中的一局
 function updTried(v){try{const t=JSON.parse(sessionStorage.getItem('xw_upd')||'null');return t&&t.v===v&&Date.now()-t.at<120000}catch(e){return false}}
-async function checkUpdate(){
+let verMsg='',verLast=0;
+async function checkUpdate(manual){
   if(!appV()||location.protocol==='file:')return;
-  try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
-    const v=+(j&&j.v)||0;if(v<=appV())return;
-    if(safeToUpd()&&!updTried(v)){doUpdate(v);return}   // 刚试过还是旧的（网站还没刷新完），就改成显示按钮，免得一直刷新
-    if(v!==newV){newV=v;render()}}catch(e){}
+  if(manual){if(Date.now()-verLast<3000)return;verLast=Date.now();verMsg='正在检查更新……';render()}
+  try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();
+    const v=+(j&&j.v)||0;
+    if(v<=appV()){if(manual){verMsg='已经是最新版本。';render()}return}
+    if(v!==newV){newV=v}
+    if(safeToUpd()||(manual&&!queue.length)){
+      if(!updTried(v)){verMsg='发现新版本 '+verTxt(v)+'，正在更新……';render();doUpdate(v);return}
+      if(manual)verMsg='网站还在更新，过一两分钟再点一次。'}   // 刚试过还是旧的：免得一直刷新
+    else if(manual)verMsg='发现新版本 '+verTxt(v)+'：先处理完眼前的事，再点上面的提示更新。';
+    render()}catch(e){if(manual){verMsg='没连上网，过一会儿再试。';render()}}
 }
 async function doUpdate(v){
   try{sessionStorage.setItem('xw_upd',JSON.stringify({v:v||newV,at:Date.now()}))}catch(e){}
   if(cloudOn()&&S){clearTimeout(cloudTimer);try{save();await cloudPush(true)}catch(e){}}   // 先把进度存到云端
   location.replace(location.pathname+'?u='+Date.now());                                       // 换一个网址，绕过旧的缓存
 }
+/* 自动检查：打开游戏时查一次；之后玩家每次操作（点任何地方）、从后台切回来时顺便查，但 5 分钟最多查一次 */
+const UPD_GAP=5*60*1000;let updAutoAt=Date.now();
+function autoCheck(){if(Date.now()-updAutoAt<UPD_GAP)return;updAutoAt=Date.now();checkUpdate()}
 checkUpdate();
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
-setInterval(()=>{if(!document.hidden)checkUpdate()},10*60*1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)autoCheck()});
+document.addEventListener('click',autoCheck,true);
 /* 游戏中：顶部状态栏下面加一行更新提示 */
 const _renderBase=render;
 render=function(){_renderBase();
   if(newV&&!safeToUpd()){const st=$('#status');if(st&&!st.querySelector('.updbar')){if(!queue.length)updWarn=false;
     st.insertAdjacentHTML('beforeend',`<button class="updbar${updWarn?' warn':''}" data-a="appUpd">${updWarn?'先处理完眼前的事，再点这里更新':`有新版本 ${verTxt(newV)}，点这里更新`}</button>`)}}};
-const cloudFoot=`<p class="lfoot">作者：小熊cz<span class="lver">版本 ${verTxt(appV())}</span></p>`;
+const cloudFoot=()=>`<p class="lfoot">作者：小熊cz<span class="lver">版本 ${verTxt(appV())}</span></p>`;
 const cloudUpd=()=>newV?`<button class="opt lupd" data-a="appUpd"><b>发现新版本 ${verTxt(newV)}</b><small>点这里更新（当前 ${verTxt(appV())}），进度会先存到云端</small></button>`:'';
 const cloudHead=sub=>`<div class="lhead"><div class="lseal">藩</div><h2 class="ttl">藩王修仙录</h2><p class="lsub">${sub}</p></div>${cloudUpd()}`;
 function cloudTitleHTML(){
@@ -120,7 +130,7 @@ function cloudTitleHTML(){
       ${msg}${busy}
       <button class="opt primary lgo" data-a="cCreate" ${cloudBusy?'disabled':''}>确认新建</button>
       <button class="opt lback" data-a="cBack">换个名字</button>
-      <p class="lnote">名字和口令请记好：换手机、换浏览器都靠它们登录，忘了口令存档就找不回来。</p></div>${cloudFoot}</div>`;
+      <p class="lnote">名字和口令请记好：换手机、换浏览器都靠它们登录，忘了口令存档就找不回来。</p></div>${cloudFoot()}</div>`;
     return `<div class="page title login">${cloudHead('罪藩七皇子，问鼎九五，羽化登仙。')}
     <div class="lcard">
       <label class="lf"><span>用户名</span><input type="text" id="lname" maxlength="12" value="${esc(n)}" placeholder="最多 12 个字" autocomplete="username" autocapitalize="off" spellcheck="false"></label>
@@ -128,30 +138,32 @@ function cloudTitleHTML(){
       ${msg}${busy}
       <button class="opt primary lgo" data-a="cLogin" ${cloudBusy?'disabled':''}>登录</button>
       ${offl?`<button class="opt lback" data-a="cOffline">先离线继续上次的存档<small>${esc(saveBrief(locS))}　联网后会自动存到云端</small></button>`:''}
-      <p class="lnote">没有账号的，输入新名字和口令就会新建。存档保存在云端，换手机、换浏览器都能接着玩。</p></div>${cloudFoot}</div>`;
+      <p class="lnote">没有账号的，输入新名字和口令就会新建。存档保存在云端，换手机、换浏览器都能接着玩。</p></div>${cloudFoot()}</div>`;
   }
   if(cloudConfirm&&cloudConfirm.del!=null){const i=cloudConfirm.del,s=cloudSlots[i];
     return `<div class="page title login">${cloudHead('删除存档')}<div class="lcard">${msg}<p class="lq">存档位 ${i+1}：<b>${esc(s?s.brief:'')}</b></p><p class="lnote">删除后找不回来。</p>
-    <button class="opt primary lgo" data-a="cDel" data-i="${i}">确定删除</button><button class="opt lback" data-a="cBack">返回</button></div>${cloudFoot}</div>`}
+    <button class="opt primary lgo" data-a="cDel" data-i="${i}">确定删除</button><button class="opt lback" data-a="cBack">返回</button></div>${cloudFoot()}</div>`}
   const rows=cloudSlots.map((s,i)=>s?`<div class="lslot${i===SLOT?' cur':''}"><button class="opt${i===SLOT?' primary':''}" data-a="cPick" data-i="${i}" ${cloudBusy?'disabled':''}><span class="lno">${i+1}</span>继续游戏<small>${esc(s.brief)}<br>保存于 ${fmtTime(s.savedAt)}</small></button>
       <button class="ldel" data-a="cDelAsk" data-i="${i}" aria-label="删除存档位 ${i+1}">删除</button></div>`
     :`<div class="lslot"><button class="opt lempty" data-a="cNew" data-i="${i}" ${cloudBusy?'disabled':''}><span class="lno">${i+1}</span>空存档位<small>开新的一局</small></button></div>`).join('');
   return `<div class="page title login">${cloudHead('选择存档')}
   <div class="luser"><span>当前用户</span><b>${esc(ACCT.name)}</b><button class="small" data-a="cLogout">切换用户</button></div>
-  ${msg}${busy}${rows}${cloudFoot}</div>`;
+  ${msg}${busy}${rows}${cloudFoot()}</div>`;
 }
 /* 存档页顶部：云端存档状态 */
 function cloudSaveHTML(){
   if(!(ACCT&&ACCT.name))return '';
   const st=cloudLast.ok===false?`✗ 上次没能存到云端（${esc(cloudErrTxt(cloudLast.err).replace(/。$/,''))}），联网后下次保存会自动补上。`:cloudLast.ok?`✓ 已存到云端：${fmtTime(cloudLast.at)}`:'进入游戏后，每次自动保存都会存到云端。';
   return `<div class="qcard${cloudLast.ok===false?' warn':''}"><p>用户：${esc(ACCT.name)}　存档位 ${SLOT!=null?SLOT+1:'-'}</p><p class="note">${st}</p>
-  <div class="btns"><button class="small" data-a="cSaveNow">立刻存到云端</button><button class="small" data-a="toTitle">换存档 / 换用户</button></div>${cloudFoot}</div>`;
+  <div class="btns"><button class="small" data-a="cSaveNow">立刻存到云端</button><button class="small" data-a="toTitle">换存档 / 换用户</button></div></div>
+  <div class="qcard vrow"><p>当前版本 ${verTxt(appV())}</p>${verMsg?`<p class="note">${esc(verMsg)}</p>`:''}<div class="btns"><button class="small" data-a="verChk">检查更新</button></div></div>`;
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-a]');if(!b||b.disabled)return;const a=b.dataset.a;const i=b.dataset.i!=null?+b.dataset.i:null;
   if(a==='cLogin'){const n=($('#lname')||{}).value||'',p=($('#lpin')||{}).value||'';
     if(!n.trim()||!/^\d{6}$/.test(p)){cloudMsg=cloudErrTxt('input');render();return}
     const nn=n.trim().slice(0,12);if(!ACCT||ACCT.name!==nn){SLOT=null;LS.del('xw_slot')}ACCT={name:nn,pin:p};cloudSlots=null;cloudLogin(false);return}
+  if(a==='verChk'){checkUpdate(true);return}
   if(a==='appUpd'){if(!safeToUpd()&&queue.length){updWarn=true;render();return}b.disabled=true;doUpdate();return}
   if(a==='cCreate'){const p2=($('#lpin2')||{}).value||'';if(p2!==ACCT.pin){cloudMsg='两次输入的口令不一样，请再输一次。';render();return}cloudLogin(true);return}
   if(a==='cBack'){cloudConfirm=null;cloudMsg='';if(!cloudSlots){cloudLastName=ACCT&&ACCT.name||'';ACCT=null;LS.del('xw_acct')}render();return}

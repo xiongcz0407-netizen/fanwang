@@ -263,6 +263,7 @@ details.help p{white-space:pre-line;margin:0 0 12px;line-height:1.7;font-size:15
 .ldel:hover{color:var(--cinnabar);border-color:var(--cinnabar)}
 .lfoot{margin-top:auto;margin-bottom:0;padding-top:18px;text-align:center;font-size:12.5px;color:var(--muted);letter-spacing:.15em}
 .lver{margin-left:1.2em}
+.vrow{margin-top:8px}
 .login .opt.lupd{text-align:center;border:1px solid var(--gold);border-left-width:1px;border-radius:10px;background:rgba(166,116,26,.12);animation:lpulse 1.6s ease-in-out infinite}
 .login .opt.lupd b{color:var(--gold);font-size:16px;letter-spacing:.1em}
 @keyframes lpulse{50%{box-shadow:0 0 0 4px rgba(166,116,26,.18)}}
