@@ -127,19 +127,21 @@ if(typeof document!=='undefined'&&document.addEventListener)document.addEventLis
 
 /* ---------- 页面 ---------- */
 const fmtDay=t=>{if(!t)return '';const d=new Date(t);return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`};
-function achHTML(){if(!META)achLoad();const got=ACH_ALL.filter(a=>META.ach[a.id]).length;
-  return `<div class="page"><div class="hubhead"><h4 class="sub" style="margin-top:0">我的成就</h4><button class="small" data-a="tab" data-t="save">返回</button></div>
+/* back：返回按钮的属性（默认回存档页；选存档页用 cloud.js 传进来的） */
+const ACH_BACK='data-a="achBack"';
+function achHTML(back){back=back||ACH_BACK;if(!META)achLoad();const got=ACH_ALL.filter(a=>META.ach[a.id]).length;
+  return `<div class="page"><div class="hubhead"><h4 class="sub" style="margin-top:0">我的成就</h4><button class="small" ${back}>返回</button></div>
   <div class="achtop"><b>${got}</b> / ${ACH_ALL.length}<span>三个存档位一起算，删档也不会清零。</span></div>
   ${ACH.map(([c])=>`<h4 class="sub">${c}</h4><div class="achlist">${ACH_ALL.filter(a=>a.cat===c).map(a=>{const g=META.ach[a.id];
     return `<div class="achcard${g?' got':''}"><b>${esc(a.name)}</b><span>${esc(a.desc)}${a.sum?'（累计）':''}</span>${g?`<small>${fmtDay(g.at)}达成</small>`:''}</div>`}).join('')}</div>`).join('')}</div>`}
 const END_LIST=['羽化登仙','废为庶人','民变','赐死','走火入魔','渡劫陨落','起兵兵败'];
-function statsHTML(){if(!META)achLoad();const st=META.st,be=META.best,c=k=>fmt(st[k]||0);
+function statsHTML(back){back=back||ACH_BACK;if(!META)achLoad();const st=META.st,be=META.best,c=k=>fmt(st[k]||0);
   const g=st.games||0,w=st.wins||0,f=st.fails||0,rate=w+f?Math.round(w/(w+f)*100)+'%':'—';
   const mx=Math.max(1,...END_LIST.map(k=>META.end[k]||0));
   const row=(l,v)=>`<div class="srow"><span>${l}</span><b>${v}</b></div>`;
   const card=(t,rows)=>`<details class="scard" open><summary>${t}</summary>${rows.join('')}</details>`;
   const yrs=st.months||0;const fs=META.fast;
-  return `<div class="page"><div class="hubhead"><h4 class="sub" style="margin-top:0">我的数据</h4><button class="small" data-a="tab" data-t="save">返回</button></div>
+  return `<div class="page"><div class="hubhead"><h4 class="sub" style="margin-top:0">我的数据</h4><button class="small" ${back}>返回</button></div>
   <div class="sbig">${[['开过几局',g],['通关',w],['失败',f],['通关率',rate]].map(([l,v])=>`<div><b>${typeof v==='number'?fmt(v):v}</b><span>${l}</span></div>`).join('')}</div>
   <p class="note ctr">累计游戏内 ${Math.floor(yrs/12)} 年${yrs%12?` ${yrs%12} 个月`:''}　·　累计赚到银两 ${c('silverEarn')}<br>最快通关 ${fs?`第 ${fs.year} 年`:'—'}　·　最高境界 ${be.realm?realmName(Math.min(be.realm,26)):'—'}　·　最高帝业 第 ${be.rank||1} 阶</p>
   <h4 class="sub">结局</h4><div class="ends">${END_LIST.map(k=>{const n=META.end[k]||0;return `<div class="erow"><span>${n?k:'？？？'}</span><i style="width:${n?`max(4px,${Math.round(n/mx*100)}%)`:0}"></i><b>${n}</b></div>`}).join('')}</div>

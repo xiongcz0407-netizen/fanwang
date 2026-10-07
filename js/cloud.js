@@ -1,4 +1,4 @@
-const APP_V=102;   // 打包时写入的版本号
+const APP_V=103;   // 打包时写入的版本号
 /* ================= 云端存档 =================
    用户名 + 6 位口令登录，每个用户 3 个存档位，存档放在 GitHub 私有仓库里（读写接口见 ghsave.js，它会替换下面的 cloudApi / cloudBeacon）。
    本机仍然保留一份当前存档（xw_save），断网时照常玩，联网后下次保存会自动补传。
@@ -75,7 +75,8 @@ async function cloudDel(i){
 }
 function cloudNew(i){cloudMsg='';SLOT=i;LS.set('xw_slot',i);S=null;queue=[];title=false;titleSub='';cloudPushed='';LS.del('xw_save');LS.set('xw_savemeta',{name:ACCT.name,slot:i,savedAt:0});render()}
 /* 标题页：没登录时显示登录；登录后显示三个存档位 */
-let cloudPin2=false;                 // 新建账号时要再输一次口令
+let cloudPin2=false,cloudView='';         // cloudView：选存档页上打开的「我的成就」「我的数据」
+const achCount=()=>{try{const m=achExport();return `已达成 ${ACH_ALL.filter(a=>m.ach[a.id]).length} / ${ACH_ALL.length}`}catch(e){return ''}};                 // 新建账号时要再输一次口令
 /* 版本号与检查更新：打包时写入 APP_V，网站上的 version.json 是最新版本号（每次都不走缓存地去读）
    还没开始玩（登录页、选存档、起名）时发现新版本：自动刷新；正在玩：顶部出一行提示，玩家自己点。 */
 const appV=()=>typeof APP_V!=='undefined'?APP_V:0;
@@ -149,6 +150,8 @@ function cloudTitleHTML(){
       ${offl?`<button class="opt lback" data-a="cOffline">先离线继续上次的存档<small>${esc(saveBrief(locS))}　联网后会自动存到云端</small></button>`:''}
       <p class="lnote">没有账号的，输入新名字和口令就会新建。存档保存在云端，换手机、换浏览器都能接着玩。</p></div>${cloudFoot()}</div>`;
   }
+  /* 账号层面的页面：我的成就 / 我的数据（三个存档位一起算，所以放在选存档这一页） */
+  if(cloudView==='ach'||cloudView==='stats')return `<div class="page title acctpage">${(cloudView==='ach'?achHTML:statsHTML)('data-a="cView" data-v=""')}</div>`;
   if(cloudConfirm&&cloudConfirm.del!=null){const i=cloudConfirm.del,s=cloudSlots[i];
     return `<div class="page title login">${cloudHead('删除存档')}<div class="lcard">${msg}<p class="lq">存档位 ${i+1}：<b>${esc(s?s.brief:'')}</b></p><p class="lnote">删除后找不回来。</p>
     <button class="opt primary lgo" data-a="cDel" data-i="${i}">确定删除</button><button class="opt lback" data-a="cBack">返回</button></div>${cloudFoot()}</div>`}
@@ -157,7 +160,8 @@ function cloudTitleHTML(){
     :`<div class="lslot"><button class="opt lempty" data-a="cNew" data-i="${i}" ${cloudBusy?'disabled':''}><span class="lno">${i+1}</span>空存档位<small>开新的一局</small></button></div>`).join('');
   return `<div class="page title login">${cloudHead('选择存档')}
   <div class="luser"><span>当前用户</span><b>${esc(ACCT.name)}</b><button class="small" data-a="cLogout">切换用户</button></div>
-  ${msg}${busy}${rows}${cloudFoot()}</div>`;
+  ${msg}${busy}${rows}
+  ${typeof achHTML==='function'?`<div class="lacc"><button class="opt" data-a="cView" data-v="ach">我的成就<small>${achCount()}</small></button><button class="opt" data-a="cView" data-v="stats">我的数据<small>所有存档的累计统计</small></button></div>`:''}${cloudFoot()}</div>`;
 }
 /* 存档页顶部：云端存档状态 */
 function cloudSaveHTML(){
@@ -173,21 +177,22 @@ document.addEventListener('click',e=>{
     if(!n.trim()||!/^\d{6}$/.test(p)){cloudMsg=cloudErrTxt('input');render();return}
     const nn=n.trim().slice(0,12);if(!ACCT||ACCT.name!==nn){SLOT=null;LS.del('xw_slot')}ACCT={name:nn,pin:p};cloudSlots=null;cloudLogin(false);return}
   if(a==='verChk'){checkUpdate(true);return}
+  if(a==='cView'){cloudView=b.dataset.v||'';render();const m=$('#main');if(m)m.scrollTop=0;return}
   if(a==='appUpd'){if(!safeToUpd()&&queue.length){updWarn=true;render();return}b.disabled=true;doUpdate(0,true);return}
   if(a==='cCreate'){const p2=($('#lpin2')||{}).value||'';if(p2!==ACCT.pin){cloudMsg='两次输入的口令不一样，请再输一次。';render();return}cloudLogin(true);return}
   if(a==='cBack'){cloudConfirm=null;cloudMsg='';if(!cloudSlots){cloudLastName=ACCT&&ACCT.name||'';ACCT=null;LS.del('xw_acct')}render();return}
   if(a==='cToCloud'){ACCT=null;cloudSlots=null;cloudMsg='';title=true;titleSub='';render();return}
   if(a==='cOffline'){title=false;titleSub='';tab='play';render();return}
-  if(a==='cLogout'){cloudLastName='';ACCT=null;cloudSlots=null;SLOT=null;LS.del('xw_acct');LS.del('xw_slot');cloudMsg='';cloudConfirm=null;title=true;titleSub='';render();return}
-  if(a==='cPick'){cloudPick(i);return}
-  if(a==='cNew'){cloudNew(i);return}
+  if(a==='cLogout'){cloudView='';cloudLastName='';ACCT=null;cloudSlots=null;SLOT=null;LS.del('xw_acct');LS.del('xw_slot');cloudMsg='';cloudConfirm=null;title=true;titleSub='';render();return}
+  if(a==='cPick'){cloudView='';cloudPick(i);return}
+  if(a==='cNew'){cloudView='';cloudNew(i);return}
   if(a==='cDelAsk'){cloudConfirm={del:i};render();return}
   if(a==='cDel'){cloudDel(i);return}
   if(a==='cSaveNow'){if(queue.length){fileMsg='眼前还有事没处理完，处理好了会自动保存。';render();return}save();cloudPush(true);return}
 });
 /* 回标题页时把云端存档位列表刷新一下 */
 const _cloudToTitle=()=>{if(ACCT&&ACCT.name){cloudSlots=null}};
-document.addEventListener('click',e=>{const b=e.target.closest('[data-a="toTitle"]');if(b&&!queue.length&&ACCT&&ACCT.name){cloudMsg='';cloudConfirm=null;clearTimeout(cloudTimer);cloudPush().then(_cloudToTitle).then(()=>render())}},true);
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a="toTitle"]');if(b&&!queue.length&&ACCT&&ACCT.name){cloudMsg='';cloudConfirm=null;cloudView='';clearTimeout(cloudTimer);cloudPush().then(_cloudToTitle).then(()=>render())}},true);
 /* 输入框里按回车 = 点登录 / 确认新建 */
 document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const id=e.target&&e.target.id;
   if(id==='lname'){e.preventDefault();const p=$('#lpin');if(p)p.focus()}

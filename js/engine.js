@@ -1010,7 +1010,7 @@ function logHTML(){return `<div class="page"><div class="btns" style="margin-bot
 function saveHTML(){
   const ok=storageOK();const t=S&&S.savedAt?new Date(S.savedAt):null;
   const cm=typeof cloudCan==='function'&&cloudCan()&&typeof ACCT!=='undefined'&&!!(ACCT&&ACCT.name);   // 云端版：存档在云端，不用存档码、存档文件
-  return `<div class="page"><div class="hubhead"><h4 class="sub" style="margin-top:0">存档</h4><button class="small" data-a="tab" data-t="devlog">开发者说明</button></div>${typeof achHTML==='function'?'<div class="btns" style="margin:0 0 10px"><button class="opt primary achbtn" data-a="tab" data-t="ach">我的成就</button><button class="opt primary achbtn" data-a="tab" data-t="stats">我的数据</button></div>':''}${fileMsg?`<div class="gmmsg">${esc(fileMsg)}</div>`:''}${typeof cloudSaveHTML==='function'?cloudSaveHTML():''}
+  return `<div class="page"><div class="hubhead"><h4 class="sub" style="margin-top:0">存档</h4><button class="small" data-a="tab" data-t="devlog">开发者说明</button></div>${fileMsg?`<div class="gmmsg">${esc(fileMsg)}</div>`:''}${typeof cloudSaveHTML==='function'?cloudSaveHTML():''}
   ${cm?'':`<div class="qcard${ok?'':' warn'}"><p>${ok?'✓ 本浏览器可以自动保存。':'✗ 本浏览器现在无法保存进度（可能是无痕浏览模式），关掉页面进度就会丢。'}</p>
   <p class="note">最近一次自动保存：${t?`${t.getMonth()+1}月${t.getDate()}日 ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}（游戏内 ${dateTxt()}）`:'还没有'}
 当前网址：${esc(location.host||'本地文件')}
@@ -1027,7 +1027,7 @@ function saveHTML(){
 }
 function navHTML(){
   const t=[['play','行动'],['quest','目标'],['role','角色'],['ptn','道侣'],['emp','帝业'],['save','存档']];
-  return t.map(([k,l])=>`<button class="${tab===k||(k==='role'&&tab==='log')||(k==='save'&&(tab==='devlog'||tab==='ach'||tab==='stats'))?'on':''}" data-a="tab" data-t="${k}">${l}${k==='play'&&tab!=='play'&&queue.length?'<i class="dot"></i>':''}</button>`).join('');
+  return t.map(([k,l])=>`<button class="${tab===k||(k==='role'&&tab==='log')||(k==='save'&&tab==='devlog')?'on':''}" data-a="tab" data-t="${k}">${l}${k==='play'&&tab!=='play'&&queue.length?'<i class="dot"></i>':''}</button>`).join('');
 }
 function titleHTML(){
   if(!titleSub&&typeof cloudTitleHTML==='function'){const c=cloudTitleHTML();if(c)return c}
@@ -1088,7 +1088,6 @@ function _render(){
   if(!queue.length&&backTo&&S.phase==='act'&&!S.over){const d=backTo;backTo='';save();doAction(d)}else if(S.phase!=='act'||S.over)backTo='';
   renderStatus();
   const pages={quest:questHTML,role:roleHTML,ptn:ptnHTML,log:logHTML,devlog:devlogHTML,emp:empHTML,save:saveHTML};
-  if(typeof achHTML==='function'){pages.ach=achHTML;pages.stats=statsHTML}
   $('#main').innerHTML=tab==='play'?(S.over?overHTML():queue.length?sceneHTML(queue[0]):hubHTML()):pages[tab]();
   $('#nav').innerHTML=navHTML();
   if(!queue.length||S.over)save();

@@ -312,3 +312,8 @@ details.help p{white-space:pre-line;margin:0 0 12px;line-height:1.7;font-size:15
 #achlay .aitem b{display:block;font-family:var(--title);font-weight:400;font-size:18px}
 #achlay .aitem span{font-size:13px;color:var(--muted)}
 #achlay .opt{text-align:center;margin-top:4px}
+.lacc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.login .lacc .opt{text-align:center;border-left-width:1px;border-color:var(--gold);border-radius:10px;font-size:16px}
+.login .lacc .opt small{font-size:11.5px}
+.acctpage{padding:12px 12px 18px}
+.acctpage>.page{padding:0;background:none!important;min-height:0}
