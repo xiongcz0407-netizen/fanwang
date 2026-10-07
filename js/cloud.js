@@ -1,5 +1,5 @@
 /* ================= 云端存档 =================
-   用户名 + 6 位口令登录，每个用户 3 个存档位，存档放在 EdgeOne 的 KV 里（接口 /api/save，见 edge-functions/api/save.js）。
+   用户名 + 6 位口令登录，每个用户 3 个存档位，存档放在 GitHub 私有仓库里（读写接口见 ghsave.js，它会替换下面的 cloudApi / cloudBeacon）。
    本机仍然保留一份当前存档（xw_save），断网时照常玩，联网后下次保存会自动补传。
    必须登录才能玩（本地文件打开、或云端没配置好时，才退回原来的本机存档）。 */
 const CLOUD_SLOTS=3;
@@ -21,7 +21,7 @@ async function cloudApi(op,extra){
   let j=null;try{j=await r.json()}catch(e){}
   return j||{ok:false,err:'net'};
 }
-const cloudErrTxt=e=>({pin:'口令不对。',locked:'口令错太多次，请过一会儿再试。',input:'用户名不能为空，口令要 6 位数字。',nouser:'这个名字还没有存档。',token:'云端存档的钥匙失效了，请联系作者。',nokv:'云端存档还没有开通（需要在 EdgeOne 绑定 KV）。',net:'连不上云端，检查一下网络。',size:'存档太大，存不进去。'}[e]||'云端出错了，请稍后再试。');
+const cloudErrTxt=e=>({pin:'口令不对。',locked:'口令错太多次，请过一会儿再试。',input:'用户名不能为空，口令要 6 位数字。',nouser:'这个名字还没有存档。',token:'云端存档的钥匙失效了，请联系作者。',net:'连不上云端，检查一下网络。',size:'存档太大，存不进去。'}[e]||'云端出错了，请稍后再试。');
 const cloudBrief=o=>`${saveBrief(o)}　${rankName(o.rank)}`;
 const fmtTime=t=>{if(!t)return '';const d=new Date(t);return `${d.getMonth()+1}月${d.getDate()}日 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
 
@@ -75,6 +75,7 @@ async function cloudDel(i){
 function cloudNew(i){cloudMsg='';SLOT=i;LS.set('xw_slot',i);S=null;queue=[];title=false;titleSub='';cloudPushed='';LS.del('xw_save');LS.set('xw_savemeta',{name:ACCT.name,slot:i,savedAt:0});render()}
 /* 标题页：没登录时显示登录；登录后显示三个存档位 */
 let cloudPin2=false;                 // 新建账号时要再输一次口令
+const cloudFoot='<p class="lfoot">作者：小熊cz</p>';
 const cloudHead=sub=>`<div class="lhead"><div class="lseal">藩</div><h2 class="ttl">藩王修仙录</h2><p class="lsub">${sub}</p></div>`;
 function cloudTitleHTML(){
   if(!cloudCan())return null;        // 本地文件打开、或云端没配置好：用原来的标题页
@@ -90,7 +91,7 @@ function cloudTitleHTML(){
       ${msg}${busy}
       <button class="opt primary lgo" data-a="cCreate" ${cloudBusy?'disabled':''}>确认新建</button>
       <button class="opt lback" data-a="cBack">换个名字</button>
-      <p class="lnote">名字和口令请记好：换手机、换浏览器都靠它们登录，忘了口令存档就找不回来。</p></div></div>`;
+      <p class="lnote">名字和口令请记好：换手机、换浏览器都靠它们登录，忘了口令存档就找不回来。</p></div>${cloudFoot}</div>`;
     return `<div class="page title login">${cloudHead('罪藩七皇子，问鼎九五，羽化登仙。')}
     <div class="lcard">
       <label class="lf"><span>用户名</span><input type="text" id="lname" maxlength="12" value="${esc(n)}" placeholder="最多 12 个字" autocomplete="username" autocapitalize="off" spellcheck="false"></label>
@@ -98,24 +99,24 @@ function cloudTitleHTML(){
       ${msg}${busy}
       <button class="opt primary lgo" data-a="cLogin" ${cloudBusy?'disabled':''}>登录</button>
       ${offl?`<button class="opt lback" data-a="cOffline">先离线继续上次的存档<small>${esc(saveBrief(locS))}　联网后会自动存到云端</small></button>`:''}
-      <p class="lnote">没有账号的，输入新名字和口令就会新建。存档保存在云端，换手机、换浏览器都能接着玩。</p></div></div>`;
+      <p class="lnote">没有账号的，输入新名字和口令就会新建。存档保存在云端，换手机、换浏览器都能接着玩。</p></div>${cloudFoot}</div>`;
   }
   if(cloudConfirm&&cloudConfirm.del!=null){const i=cloudConfirm.del,s=cloudSlots[i];
     return `<div class="page title login">${cloudHead('删除存档')}<div class="lcard">${msg}<p class="lq">存档位 ${i+1}：<b>${esc(s?s.brief:'')}</b></p><p class="lnote">删除后找不回来。</p>
-    <button class="opt primary lgo" data-a="cDel" data-i="${i}">确定删除</button><button class="opt lback" data-a="cBack">返回</button></div></div>`}
+    <button class="opt primary lgo" data-a="cDel" data-i="${i}">确定删除</button><button class="opt lback" data-a="cBack">返回</button></div>${cloudFoot}</div>`}
   const rows=cloudSlots.map((s,i)=>s?`<div class="lslot${i===SLOT?' cur':''}"><button class="opt${i===SLOT?' primary':''}" data-a="cPick" data-i="${i}" ${cloudBusy?'disabled':''}><span class="lno">${i+1}</span>继续游戏<small>${esc(s.brief)}<br>保存于 ${fmtTime(s.savedAt)}</small></button>
       <button class="ldel" data-a="cDelAsk" data-i="${i}" aria-label="删除存档位 ${i+1}">删除</button></div>`
     :`<div class="lslot"><button class="opt lempty" data-a="cNew" data-i="${i}" ${cloudBusy?'disabled':''}><span class="lno">${i+1}</span>空存档位<small>开新的一局</small></button></div>`).join('');
   return `<div class="page title login">${cloudHead('选择存档')}
   <div class="luser"><span>当前用户</span><b>${esc(ACCT.name)}</b><button class="small" data-a="cLogout">切换用户</button></div>
-  ${msg}${busy}${rows}</div>`;
+  ${msg}${busy}${rows}${cloudFoot}</div>`;
 }
 /* 存档页顶部：云端存档状态 */
 function cloudSaveHTML(){
   if(!(ACCT&&ACCT.name))return '';
   const st=cloudLast.ok===false?`✗ 上次没能存到云端（${esc(cloudErrTxt(cloudLast.err).replace(/。$/,''))}），联网后下次保存会自动补上。`:cloudLast.ok?`✓ 已存到云端：${fmtTime(cloudLast.at)}`:'进入游戏后，每次自动保存都会存到云端。';
   return `<div class="qcard${cloudLast.ok===false?' warn':''}"><p>用户：${esc(ACCT.name)}　存档位 ${SLOT!=null?SLOT+1:'-'}</p><p class="note">${st}</p>
-  <div class="btns"><button class="small" data-a="cSaveNow">立刻存到云端</button><button class="small" data-a="toTitle">换存档 / 换用户</button></div></div>`;
+  <div class="btns"><button class="small" data-a="cSaveNow">立刻存到云端</button><button class="small" data-a="toTitle">换存档 / 换用户</button></div>${cloudFoot}</div>`;
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-a]');if(!b||b.disabled)return;const a=b.dataset.a;const i=b.dataset.i!=null?+b.dataset.i:null;

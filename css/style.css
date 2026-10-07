@@ -226,7 +226,8 @@ details.help p{white-space:pre-line;margin:0 0 12px;line-height:1.7;font-size:15
 .devlog ul.dl{margin:0;padding-left:1.2em;font-size:13.5px;line-height:1.6}
 .devlog ul.dl li{margin:2px 0}
 /* 云端版登录页 */
-.login{align-items:stretch;max-width:380px;margin:0 auto;width:100%}
+.login{align-items:stretch}
+.login>*{width:100%;max-width:380px;margin-left:auto;margin-right:auto}
 .lhead{text-align:center;margin:14px 0 6px}
 .lseal{width:54px;height:54px;margin:0 auto 6px;border:2px solid var(--cinnabar);color:var(--cinnabar);border-radius:8px;font-family:var(--title);font-size:32px;line-height:50px;transform:rotate(-6deg);background:rgba(var(--veil),.6)}
 .lhead .ttl{margin:4px 0 0}
@@ -260,3 +261,4 @@ details.help p{white-space:pre-line;margin:0 0 12px;line-height:1.7;font-size:15
 .lslot .opt.primary .lno{background:var(--cinnabar);border-color:var(--cinnabar);color:#fff}
 .ldel{flex:none;width:52px;border:1px solid var(--line);background:rgba(var(--veil),.9);border-radius:6px;color:var(--muted);font-size:13px;cursor:pointer}
 .ldel:hover{color:var(--cinnabar);border-color:var(--cinnabar)}
+.lfoot{margin-top:auto;margin-bottom:0;padding-top:18px;text-align:center;font-size:12.5px;color:var(--muted);letter-spacing:.15em}

@@ -610,7 +610,7 @@ function chapterCheck(){
 /* 期限问责：章节到期（腊月底）没完成 → 第 1 级惩罚 + 2 个月补救期；补不上 → 立即升一级惩罚，再给 2 个月；第 4 级游戏结束 */
 /* 离阶段期限还剩几个月（含本月） */
 const chLeft=()=>(chDue()-1)*12+12-mi()+1;
-const chLeftTxt=()=>{const n=chLeft();if(n<=1)return '本月底到期';if(n<12)return `还剩 ${n} 个月`;const y=Math.floor(n/12),m=n%12;return `还剩 ${y} 年${m?` ${m} 个月`:''}`};
+const chLeftTxt=()=>{const n=chLeft();return n<=1?'本月底到期':`还剩 ${n} 个月`};
 const chDue=()=>S.chap>16?99:Math.max(CH_DEF[S.chap].due,Math.floor(((S.chapMi||1)+10)/12)+1);
 const ACC=[null,
  {name:'朝廷申饬',txt:'猜忌 +15，心魔 +5，银两 −10%',run(){S.suspicion=clamp(S.suspicion+15,0,100);S.xinmo=clamp(S.xinmo+5,0,100);S.silver=Math.round(S.silver*0.9)}},

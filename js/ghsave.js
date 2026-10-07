@@ -2,7 +2,7 @@
    存档放在一个私有仓库里（见 js/ghcfg.js），用 GitHub 的接口读写：
      users/u_xxx.json   一个用户一个文件：名字、口令的哈希、三个存档位的摘要
      saves/<id>_<位>.json 一个存档位一个文件：存档本身
-   这里实现 cloud.js 需要的 cloudApi（login / load / save / del），其余逻辑都在 cloud.js。
+   这里实现 cloud.js 需要的 cloudApi（login / load / save / del），其余逻辑（登录页、存档位、自动上传）都在 cloud.js。
    注意：钥匙（令牌）写在网页里，懂行的人能拿到，所以令牌只授权存档仓库、只给读写文件的权限。 */
 const GH=typeof GH_SAVE!=='undefined'?GH_SAVE:null;
 function cloudReady(){return !!(GH&&GH.owner&&GH.repo&&GH.k)}
@@ -42,7 +42,7 @@ async function ghAuth(name,pin,create,fresh){
   ghUser={uk,path,u,created};return ghUser}
 const ghSavePath=(u,slot)=>`saves/${u.id}_${slot}.json`;
 
-/* cloud.js 调用的接口：和 EdgeOne 版的 /api/save 返回一样的格式 */
+/* cloud.js 调用的接口：login / load / save / del */
 async function cloudApi(op,extra){
   extra=extra||{};
   try{
