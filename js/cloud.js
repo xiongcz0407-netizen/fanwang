@@ -1,4 +1,4 @@
-const APP_V=94;   // 打包时写入的版本号
+const APP_V=95;   // 打包时写入的版本号
 /* ================= 云端存档 =================
    用户名 + 6 位口令登录，每个用户 3 个存档位，存档放在 GitHub 私有仓库里（读写接口见 ghsave.js，它会替换下面的 cloudApi / cloudBeacon）。
    本机仍然保留一份当前存档（xw_save），断网时照常玩，联网后下次保存会自动补传。
@@ -82,7 +82,13 @@ const appV=()=>typeof APP_V!=='undefined'?APP_V:0;
 let newV=0,updWarn=false;
 const verTxt=v=>(v/100).toFixed(2);          // 显示用：内部版本号 92 显示成 0.92，每次更新 +0.01
 const safeToUpd=()=>title||!S;                     // 没有进行中的一局
-function updTried(v){try{const t=JSON.parse(sessionStorage.getItem('xw_upd')||'null');return t&&t.v===v&&Date.now()-t.at<120000}catch(e){return false}}
+/* 2 分钟内为同一个新版本试过几次更新：第 1 次覆盖首页缓存后原地址重开；第 2 次换带时间戳的地址；再不行就不自动刷新了 */
+function updTries(v){try{const t=JSON.parse(sessionStorage.getItem('xw_upd')||'null');return t&&t.v===v&&Date.now()-t.at<120000?(t.n||1):0}catch(e){return 0}}
+const updTried=v=>updTries(v)>=2;
+const appBase=()=>location.pathname.replace(/index\.html$/,'');
+/* 主屏幕图标总从首页原地址启动：强制重新下载首页，把手机里旧的缓存换成新的 */
+const refreshHome=()=>Promise.all([appBase(),appBase()+'index.html'].map(u=>fetch(u,{cache:'reload'}).catch(()=>{})));
+if(/[?&]u=/.test(location.search)){try{history.replaceState(null,'',appBase())}catch(e){}refreshHome()}   // 用时间戳地址打开的：顺手把首页缓存也换新
 let verMsg='',verLast=0;
 async function checkUpdate(manual){
   if(!appV()||location.protocol==='file:')return;
@@ -98,9 +104,11 @@ async function checkUpdate(manual){
     render()}catch(e){if(manual){verMsg='没连上网，过一会儿再试。';render()}}
 }
 async function doUpdate(v){
-  try{sessionStorage.setItem('xw_upd',JSON.stringify({v:v||newV,at:Date.now()}))}catch(e){}
+  v=v||newV;const n=updTries(v)+1;
+  try{sessionStorage.setItem('xw_upd',JSON.stringify({v,at:Date.now(),n}))}catch(e){}
   if(cloudOn()&&S){clearTimeout(cloudTimer);try{save();await cloudPush(true)}catch(e){}}   // 先把进度存到云端
-  location.replace(location.pathname+'?u='+Date.now());                                       // 换一个网址，绕过旧的缓存
+  if(n===1){await refreshHome();location.replace(appBase())}                                  // 首页缓存换新后，用原地址重新打开
+  else location.replace(appBase()+'?u='+Date.now());                                          // 还是旧的：换一个网址绕过缓存
 }
 /* 自动检查：打开游戏时查一次；之后玩家每次操作（点任何地方）、从后台切回来时顺便查，但 5 分钟最多查一次 */
 const UPD_GAP=5*60*1000;let updAutoAt=Date.now();
