@@ -1,0 +1,194 @@
+/* 游历事件。cat:'游历'；链式后续 cat:'chain'。 */
+const EV_TRV=[
+// ===== 第1~2阶：封地周边 =====
+{id:'trv_001',cat:'游历',title:'路遇劫道',w:10,cond:{rankMin:1,rankMax:3},
+ text:'山道上，几个面黄肌瘦的汉子拦住一个货郎，手里拿的是锄头和柴刀。',
+ opts:[
+  {label:'看出他们是饥民，给些盘缠',check:{attr:'wuxing',lv:2},cost:{silver:50},eff:{merit:20,xinmo:-6,_t:'锄头上沾着新泥，手上全是老茧，他们是逃荒的佃户。你给了盘缠，指了去王府粥棚的路。'}},
+  {label:'绕道而行',eff:{minxin:-2,xinmo:2,_t:'你拨马绕开。走出很远，还听见货郎在喊救命。'}}]},
+{id:'trv_002',cat:'游历',title:'野店夜宿',w:10,cond:{rankMin:1,rankMax:3},
+ text:'投宿的野店里，酒味发苦。伙计添了三回灯油，每回都往你的包袱上瞟。',
+ opts:[
+  {label:'将计就计，夜里擒店主',check:{attr:'xinji',lv:2},eff:{merit:12,next:'trv_c01',_t:'后院地窖里搜出几具行商的骸骨。店主跪地求饶，说他背后还有人。'}},
+  {label:'倒头就睡',eff:{injured:2,silver:-60,_t:'迷药下得太重，醒来时钱袋空了。'}}]},
+{id:'trv_c01',cat:'chain',title:'黑店背后',
+ text:'店主招供：黑店是山匪的眼线，专挑落单的行商下手，山寨就在北面的鹰嘴崖。',
+ opts:[
+  {label:'把消息报给州府邀功',check:{attr:'wencai',lv:1},eff:{wengong:15,_t:'州府派兵剿了寨子，折子里也记了朔州王一笔。'}},
+  {label:'贸然进山',eff:{injured:2,troops:-100,_t:'山路险峻，中了埋伏，折了些人手。'}}]},
+{id:'trv_003',cat:'游历',title:'卖身葬父',w:10,cond:{rankMin:1,rankMax:2},
+ text:'集市上一个少年跪在草席边卖身葬父，几个地痞围着起哄压价。',
+ opts:[
+  {label:'当众教训地痞',check:{attr:'wulue',lv:1},eff:{wugong:10,xinmo:-4,_t:'地痞们滚了一地，围观的人拍手叫好。'}},
+  {label:'丢下几个铜板就走',eff:{minxin:-2,xinmo:2,_t:'地痞们哄笑着把铜板也抢了去。你走出集市，心里不大痛快。'}}]},
+{id:'trv_004',cat:'游历',title:'荒原古碑',w:10,cond:{rankMin:1,rankMax:4},
+ text:'荒原上立着半截石碑，碑文是前朝篆书，隐约能认出「吐纳」「周天」几个字。',
+ opts:[
+  {label:'拓下碑文，连夜参详',check:{attr:'wuxing',lv:2},eff:{xiuwei:80,_t:'碑文讲的是一段行气法门。你照着走了几遍周天，气息顺了不少。'}},
+  {label:'胡乱看了几眼',eff:{xinmo:3,_t:'越想越放不下，夜里梦见石碑压在胸口。'}}]},
+{id:'trv_005',cat:'游历',title:'山中隐士',w:10,cond:{rankMin:2,rankMax:4},
+ text:'樵夫说北山深处住着个不肯下山的老人，常有白鹤落在他的屋顶上。',
+ opts:[
+  {label:'踏雪徒步上山拜访',check:{attr:'gengu',lv:1},cost:{silver:60},eff:{next:'trv_c02',xiuwei:120,_t:'你踏着积雪走了大半日才到。老人收了酒，没收你的礼，指点了几句吐纳。'}},
+  {label:'托樵夫传话请他下山',eff:{xinmo:3,_t:'樵夫捎回一句话：王爷请回。你在山脚下等了半天，只等来一场雪。'}}]},
+{id:'trv_c02',cat:'chain',title:'隐士的托付',
+ text:'再上山时，老人已卧床不起。他把一卷残谱塞到你手里，要你送到青霄宗旧址。',
+ opts:[
+  {label:'连夜抄录，原本送回',check:{attr:'wencai',lv:1},eff:{wengong:15,_t:'残谱是一部前朝丹经。你连夜抄了一份收进王府书库，原本托人送回山门。'}},
+  {label:'私下留着',eff:{merit:-5,xinmo:4,_t:'你把残谱锁进箱底，一直没敢翻开。老人的眼神总在梦里。'}}]},
+{id:'trv_006',cat:'游历',title:'流民北上',w:10,cond:{rankMin:2,rankMax:5},
+ text:'河东大旱，流民成群北上，沿着官道一路都是插草标卖儿女的人。',
+ opts:[
+  {label:'沿途设粥棚',check:{attr:'meili',lv:1},cost:{silver:120},eff:{merit:30,_t:'粥棚前排起长队，有人在棚边给你立了块木牌。'}},
+  {label:'让州县关卡驱赶',eff:{minxin:-4,xinmo:3,_t:'流民被赶出了朔州地界，官道边留下好几具没人收的尸首。'}}]},
+{id:'trv_007',cat:'游历',title:'独眼雪狼',w:10,cond:{rankMin:2,rankMax:5},
+ text:'北山一头独眼雪狼连着咬死了牧民的羊，前些天又伤了一个放羊的孩子。',
+ opts:[
+  {label:'翻山循迹找到狼巢',check:{attr:'gengu',lv:1},eff:{xinmo:-5,merit:8,_t:'你在雪里追了两天踪迹。巢里有三只幼崽。你设法把母狼和幼崽一起引进了更远的深山，羊圈从此安生了。'}},
+  {label:'让牧民自己下夹子',eff:{minxin:-3,_t:'夹子夹住了别家的牧犬，雪狼又叼走了两只羊。'}}]},
+{id:'trv_008',cat:'游历',title:'茶馆说书',w:10,cond:{rankMin:1,rankMax:4},
+ text:'茶馆里，说书人正讲到「七皇子雁回关大破狄人」，讲到一半，被衙役拖了出去。',
+ opts:[
+  {label:'出面保下他',check:{attr:'meili',lv:2},eff:{minxin:4,_t:'说书人被放了，这段书从此在朔州传开。'}},
+  {label:'低头喝茶',eff:{xinmo:3,_t:'说书人被拖走时回头看了一眼，正好看见你。'}}]},
+// ===== 第3~5阶：一州之地 =====
+{id:'trv_009',cat:'游历',title:'镖局擂台',w:10,cond:{rankMin:3,rankMax:5},
+ text:'州城最大的镖局摆擂选镖头，彩头是一株百年老参。',
+ opts:[
+  {label:'化名上台',check:{attr:'wulue',lv:3},eff:{xiuwei:60,wugong:20,_t:'连胜三场，老参到手，炖了服下气血充盈。台下的镖师都在打听你的来历。'}},
+  {label:'一时手痒，贸然上台',eff:{injured:2,_t:'第二场就被人一拳打下了台。'}}]},
+{id:'trv_010',cat:'游历',title:'山崩露墓',w:10,cond:{rankMin:3,rankMax:5},
+ text:'雨后山崩，露出一座前朝将军墓。墓道口有新鲜的脚印，盗墓贼已经下去了。',
+ opts:[
+  {label:'封墓，出钱修缮',check:{attr:'wencai',lv:1},cost:{silver:40},eff:{merit:20,_t:'将军的后人辗转找来，在墓前给你磕了头。'}},
+  {label:'派人守住墓口了事',eff:{merit:-5,xinmo:2,_t:'盗墓贼从另一条盗洞跑了。将军的棺椁被撬开，扔在泥里。'}}]},
+{id:'trv_011',cat:'游历',title:'河伯娶亲',w:10,cond:{rankMin:3,rankMax:6},
+ text:'河边村子的巫祝说河伯要娶亲，要把一个姑娘装进竹笼沉河。',
+ opts:[
+  {label:'当众拆穿巫祝',check:{attr:'xinji',lv:2},eff:{minxin:5,merit:10,_t:'巫祝的把戏被揭穿，村民把他赶出了村子。'}},
+  {label:'让村里自己商量',eff:{merit:-8,xinmo:4,_t:'第二天一早，竹笼还是沉了下去。'}}]},
+{id:'trv_012',cat:'游历',title:'邻州黑市',w:10,cond:{rankMin:4,rankMax:6},
+ text:'邻州黑市里，有人在卖带官印的军械，摊上还摆着一瓶据说是筑基丹的东西。',
+ opts:[
+  {label:'验明丹药真假再压价',check:{attr:'wuxing',lv:1},cost:{silver:250},eff:{xiuwei:240,_t:'你看出瓶口封泥是新换的，丹却是真的。摊主心虚，让了价。'}},
+  {label:'当场亮明身份查抄',eff:{suspicion:5,injured:1,_t:'黑市一哄而散，你在混乱里挨了一刀。朔州王出现在邻州的消息，当晚就传开了。'}}]},
+{id:'trv_013',cat:'游历',title:'剑客求死',w:10,cond:{rankMin:4,rankMax:6},
+ text:'一个落魄剑客挡在路中央，要与你一战，说死在雁回关主帅剑下也算值了。',
+ opts:[
+  {label:'应战，看破他的剑路',check:{attr:'wuxing',lv:3},eff:{xiuwei:150,_t:'第三十招上，你看出他剑里只攻不守。他输了，却笑得很痛快，临走前把剑意说给你听。'}},
+  {label:'推说有伤在身',eff:{xinmo:4,_t:'剑客愣了很久，收剑走了。后来听说他死在一场无名的械斗里。'}}]},
+{id:'trv_014',cat:'游历',title:'闭门的村子',w:10,cond:{rankMin:3,rankMax:5},
+ text:'山坳里的村子家家闭门，门上挂着白布，路口堆着烧过的草席。',
+ opts:[
+  {label:'进村施药',check:{attr:'wencai',lv:1},cost:{silver:120},eff:{merit:30,_t:'你照着医书配了药，疫病压下去了。'}},
+  {label:'封村了事',eff:{minxin:-4,merit:-5,_t:'村口设了卡，里面的人出不来。开春再去时，村子已经空了一半。'}}]},
+{id:'trv_015',cat:'游历',title:'京畿旧话',w:10,cond:{rankMin:5,rankMax:7},
+ text:'你微服到了京畿。茶楼里有人在议论太子旧案，一个老宦官说，当年的事他都看见了。',
+ opts:[
+  {label:'结交茶楼里的耳目',check:{attr:'meili',lv:2},eff:{suspicion:-12,_t:'往后京里的风声，你能早一步知道。'}},
+  {label:'在茶楼里多问了几句',eff:{suspicion:8,_t:'你问得太急，邻桌有人起身走了。当晚，你的行踪就报进了相府。'}}]},
+{id:'trv_016',cat:'游历',title:'天衍宗山门',w:10,cond:{rankMin:5,rankMax:8},
+ text:'你来到天衍宗山门外求见。知客弟子横眉冷对，说罪藩不得入内。',
+ opts:[
+  {label:'在山下坊市打听丹道',check:{attr:'xinji',lv:1},eff:{merit:20,_t:'你在坊市里转了半天，和几位丹师聊出不少门道，顺手帮了个落难的散修。'}},
+  {label:'在山门外苦等',eff:{xinmo:5,_t:'你在山门外站到天黑，没人理你。山下的人都看见了。'}}]},
+{id:'trv_017',cat:'游历',title:'青州水寇',w:10,cond:{rankMin:5,rankMax:7},
+ text:'青州水寇劫了漕船，州官束手无策。几十个船户拦住了你的马。',
+ opts:[
+  {label:'夜袭水寨',check:{attr:'wulue',lv:3},eff:{wugong:35,troops:150,_t:'水寨破了，降卒编进了你的私兵。'}},
+  {label:'推给州官处置',eff:{minxin:-3,xinmo:2,_t:'你拨开船户继续赶路。后来听说，水寇又劫了三条船。'}}]},
+// ===== 第6~10阶：各州、京畿、宗门 =====
+{id:'trv_018',cat:'游历',title:'荒漠佛塔',w:10,cond:{rankMin:6,rankMax:9},
+ text:'西陲荒漠里有一座半埋在沙中的佛塔，过路的驼队说，夜里能听见塔里诵经。',
+ opts:[
+  {label:'和驼队一起清沙护塔',check:{attr:'gengu',lv:1},cost:{silver:70},eff:{merit:24,_t:'你顶着风沙挖了三天，佛塔露出了塔门。驼队的人说，往后路过都会来扫一扫。'}},
+  {label:'挖开塔基取舍利',eff:{merit:-10,xinmo:4,_t:'塔基挖开，里面只有一捧沙。走的时候，塔顶塌了一角。'}}]},
+{id:'trv_019',cat:'游历',title:'冒名起兵',w:10,cond:{rankMin:6,rankMax:8},
+ text:'江南有人打着你的旗号招兵买马，州县都在传「朔州王反了」。',
+ opts:[
+  {label:'亲往拆穿',check:{attr:'xinji',lv:2},eff:{suspicion:-8,wugong:15,_t:'冒名者被你当众擒下，押送京城。'}},
+  {label:'上表自辩',eff:{suspicion:10,_t:'越描越黑，朝廷更信了几分。'}}]},
+{id:'trv_020',cat:'游历',title:'易子而食',w:10,cond:{rankMin:6,rankMax:9},
+ text:'削藩之后，中原连年兵荒。你在路边看见两户人家，抱着彼此的孩子往不同方向走。',
+ opts:[
+  {label:'带孩子们回朔州',check:{attr:'wencai',lv:2},cost:{silver:60},eff:{minxin:10,_t:'车队拉回去一百多个孩子，分到各县的善堂，账目一笔笔都报得清楚。'}},
+  {label:'留下些干粮就走',eff:{xinmo:5,merit:-5,_t:'你把干粮放下就上了车。那两户人家，你没敢回头看。'}}]},
+{id:'trv_021',cat:'游历',title:'紫霞试炼塔',w:10,cond:{rankMin:7,rankMax:9},
+ text:'紫霞门开了试炼塔，散修和世家子弟在山门外排起长队。',
+ opts:[
+  {label:'执晚辈礼拜见长老',check:{attr:'meili',lv:2},eff:{merit:20,_t:'长老很欣赏你的礼数，留你论了一夜的道。'}},
+  {label:'勉强闯塔',eff:{injured:2,xinmo:3,_t:'第三层就被打了出来，旁人笑得很大声。'}}]},
+{id:'trv_022',cat:'游历',title:'玉京旧邸',w:10,cond:{rankMin:8,rankMax:10},
+ text:'你潜回玉京，站在当年七皇子府的门前。门匾换了，如今住的是严崇的侄子。',
+ opts:[
+  {label:'在门外站一夜',check:{attr:'wuxing',lv:1},eff:{xiuwei:80,_t:'你在门外站到天亮，想通了一些事。'}},
+  {label:'上前叩门',eff:{suspicion:8,_t:'门房盘问了你半天。你转身走时，有人悄悄跟了上来。'}}]},
+{id:'trv_023',cat:'游历',title:'太子墓',w:10,cond:{rankMin:8,rankMax:10},
+ text:'京郊荒山上，已故太子的墓碑被荒草埋了大半，碑上连个谥号都没有。',
+ opts:[
+  {label:'寻访当年的守墓老卒',check:{attr:'meili',lv:2},eff:{wengong:20,next:'trv_c03',_t:'老卒认出了你，哭着说太子留了东西给七弟。'}},
+  {label:'远远拜了一拜',eff:{xinmo:4,_t:'你没敢走近。下山时，碑上的荒草还是那么高。'}}]},
+{id:'trv_c03',cat:'chain',title:'太子遗信',
+ text:'老卒带你在墓旁的石龛里，取出一封蜡封完好的信。封皮上写着「七弟亲启」。',
+ opts:[
+  {label:'原封不动，留待来日',check:{attr:'wencai',lv:2},eff:{wengong:30,_t:'这封信将来会是翻案的铁证。你请老卒作保，把封蜡的样子一一记下。'}},
+  {label:'在石龛前犹豫不决',eff:{suspicion:6,xinmo:3,_t:'你在石龛前站了太久，山下有人看见了。信带了回来，相府也知道你来过这里。'}}]},
+{id:'trv_024',cat:'游历',title:'青霄旧山门',w:10,cond:{rankMin:9,rankMax:10},
+ text:'天衍宗弟子在青霄宗旧山门前设卡，向上山祭扫的青霄遗老收「过山钱」。',
+ opts:[
+  {label:'拔剑清场',check:{attr:'wulue',lv:3},eff:{wugong:40,xinmo:-5,_t:'设卡的弟子被你扔下了山，遗老们这才敢上山扫墓。'}},
+  {label:'照付过山钱',eff:{silver:-150,xinmo:4,_t:'你替遗老们交了钱。设卡的弟子掂着银子，笑说罪藩也懂规矩。'}}]},
+// ===== 大事件 =====
+{id:'trv_m01',cat:'游历',major:1,title:'雁回关故地',w:10,cond:{rankMin:2,rankMax:4},once:1,
+ intro:'你沿边墙巡行到雁回关。当年那一战埋下的白骨还在关外，如今狄人小股游骑又在劫掠边民。',
+ steps:[
+  {text:'关外的村子刚遭了劫，幸存的老人说，狄人掳走了十几个孩子。',opts:[
+   {label:'先安置幸存者',check:{attr:'meili',lv:1},cost:{silver:120},eff:{merit:16,minxin:5,_t:'村民们有了口热饭，指给你狄人的去向。'}},
+   {label:'等援兵到齐再动',eff:{minxin:-3,xinmo:2,_t:'援兵到齐时，狄人的马蹄印已被风吹平，只能一路慢慢找。'}}]},
+  {text:'狄人营地外，你认出带队的百夫长，正是当年被你放走的那个狄人少年。',opts:[
+   {label:'夜袭营地',check:{attr:'wulue',lv:2},eff:{wugong:35,_t:'孩子们救回来了。那个百夫长死在你的刀下。'}},
+   {label:'正面强攻',eff:{injured:2,troops:-150,_t:'狄人早有防备，折了不少人，孩子们才抢回来一半。'}}]},
+  {text:'孩子们回了家。关上守将找到你，想把这件事报成他的战功。',opts:[
+   {label:'让给他',check:{attr:'xinji',lv:1},eff:{suspicion:-6,_t:'守将对你感激涕零，往后边关的消息都会先送到朔州。'}},
+   {label:'和守将当面争执',eff:{suspicion:6,xinmo:3,_t:'你们在关上吵了一架。守将的折子先到了京城，说朔州王擅自出兵。'}}]}],
+ outro:'回程时，关外的风还和当年一样硬。'},
+{id:'trv_m02',cat:'游历',major:1,title:'镖局血书',w:10,cond:{rankMin:4,rankMax:6},once:1,
+ intro:'邻州一家老字号镖局一夜之间被灭了满门。消息传到朔州时，还附着一封血书，指名要交给你。',
+ steps:[
+  {text:'镖局里尸首还没收殓，血迹已经发黑，官府只派了两个衙役看门。',opts:[
+   {label:'细查尸首和伤口',check:{attr:'wuxing',lv:2},eff:{wengong:20,_t:'刀口整齐，一刀封喉，是军中的手法。'}},
+   {label:'草草看过一遍',eff:{xinmo:5,_t:'什么也没看出来，只记住了满院的血。'}}]},
+  {text:'线索指向州府盐运使，他背后是严崇的门生。杀手正在追杀唯一活下来的镖师之女。',opts:[
+   {label:'亲自护送她去朔州',check:{attr:'gengu',lv:2},eff:{merit:10,_t:'一路三次遇袭，你都挡了下来。'}},
+   {label:'让她先在城里藏着',eff:{merit:-5,injured:1,_t:'杀手找上门时你才赶到，替她挡下一刀，肩上见了血。'}}]},
+  {text:'镖师之女交出了父亲藏下的盐运私账，账上每一笔都流进了相府。',opts:[
+   {label:'送给平阳王换盟约',check:{attr:'xinji',lv:2},eff:{silver:300,_t:'平阳王送来一大笔「谢礼」，你们之间多了一层默契。'}},
+   {label:'锁进暗格，按兵不动',eff:{xinmo:4,_t:'私账锁进了暗格。仇人近在眼前，你却只能等。'}}]}],
+ outro:'镖局的旧址后来开了一间茶铺，掌柜是个不爱说话的姑娘。'},
+{id:'trv_m03',cat:'游历',major:1,title:'重返青霄',w:10,cond:{rankMin:6,rankMax:8},once:1,
+ intro:'青霄宗是你母妃出身的宗门，没落多年。有消息说，旧山门里还守着一个人。你决定亲自上山。',
+ steps:[
+  {text:'旧山门荒草没膝，护山大阵还残存着，误入的樵夫都在山里转不出来。',opts:[
+   {label:'雇山民带路，攀后山绝壁',check:{attr:'gengu',lv:1},eff:{xinmo:-8,_t:'后山绝壁爬了整整一天。歇脚时，山民讲了许多你母妃少年时上山的旧事。'}},
+   {label:'硬闯大阵',eff:{injured:2,_t:'阵法反震，你被弹出了十几丈。'}}]},
+  {text:'守山的老人是你母妃的师兄。他说青霄宗的东西不能白给，要考一考你。',opts:[
+   {label:'与他论道',check:{attr:'wuxing',lv:3},eff:{xiuwei:150,_t:'老人捋须大笑，把青霄心法的几处关窍讲给你听。'}},
+   {label:'推说俗务缠身',eff:{xinmo:5,_t:'他摇头叹气，说你心里装的东西太多。'}}]},
+  {text:'祖师殿里供着青霄宗最后一部心法。殿外传来脚步声，是天衍宗的弟子追来了。',opts:[
+   {label:'带走心法，强行突围',check:{attr:'wulue',lv:3},eff:{xiuwei:200,_t:'你杀出了山门，心法贴身藏着。'}},
+   {label:'交出山门地图，与天衍宗讲和',eff:{merit:-10,xinmo:6,_t:'天衍宗满意地走了。师伯没有再看你一眼。'}}]}],
+ outro:'下山时回头望，山门上的青霄二字，又被雾遮住了。'},
+{id:'trv_m04',cat:'游历',major:1,title:'京畿微行',w:10,cond:{rankMin:9,rankMax:10},once:1,
+ intro:'大事将成之前，你想亲眼看看玉京。你换了布衣，只带两个亲卫，混进了京城。',
+ steps:[
+  {text:'京城米价一月三涨，粮铺门口排着长队。有人说，粮都囤在相府的私仓里。',opts:[
+   {label:'开自家商号的私仓平粜',check:{attr:'meili',lv:2},eff:{minxin:10,_t:'米价降了，满城都在打听这家商号的东家是谁。'}},
+   {label:'怕露行藏，先回客栈',eff:{minxin:-3,xinmo:3,_t:'第二天，粮铺门口挤倒了人，踩死了一个老汉。'}}]},
+  {text:'你被人认了出来，相府的人已经在九门设卡。',opts:[
+   {label:'扮作车夫推粪车出城',check:{attr:'gengu',lv:2},eff:{xinmo:-5,suspicion:-5,_t:'你扮成运粪的车夫，推着粪车走了十几里，从守卒鼻子底下出了城。'}},
+   {label:'硬闯城门',eff:{injured:2,suspicion:10,_t:'在城门口被识破，拼死才冲出去。'}}]},
+  {text:'出城前，你看见当年诬告你的那个宦官，缩在街角乞讨，已经认不出你了。',opts:[
+   {label:'带他走，录下供状',check:{attr:'wencai',lv:1},eff:{wengong:30,_t:'你把他塞进车里，让他把当年的事从头说了一遍，一字一句录成供状，按了手印。'}},
+   {label:'当街质问',eff:{suspicion:6,xinmo:3,_t:'你揪着他问了半天，他只会磕头。围上来的人越来越多，你只好松手走开。'}}]}],
+ outro:'城门在身后合上。下一次进来，你想走正门。'}
+];
