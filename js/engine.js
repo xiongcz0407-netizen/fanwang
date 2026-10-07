@@ -413,7 +413,7 @@ function tribScene(key){
     return worst?'必定成功':(die?'有风险：天雷偏强就会当场陨落':'有风险：天雷偏强就会失败')};
   const run=(hp,guard,mod)=>{S.merit-=mc;tribRun(key,hp,guard,xd,mod||{})};
   /* 护体 100 的准备：自动用最省的方式 */
-  const prep=S.treasure?{how:'用寻访得到的护体法宝，不花钱',ok:true,pay(){S.treasure=0}}:S.silver>=fc?{how:`花费 银两 ${fc} 炼制护体法宝`,ok:true,pay(){S.silver-=fc}}:S.merit>=mc+mg?{how:`银两不够，改用 功德 ${mg} 护体`,ok:true,pay(){S.merit-=mg}}:{how:`需要 银两 ${fc}，或者 功德 ${mg}`,ok:false,pay(){}};
+  const prep=S.treasure?{how:'用寻访得到的护体法宝，不花钱',ok:true,pay(){S.treasure=0}}:S.silver>=fc?{how:`花费 银两 ${fc} 炼制护体法宝`,ok:true,silver:true,pay(){S.silver-=fc}}:S.merit>=mc+mg?{how:`银两不够，改用 功德 ${mg} 护体`,ok:true,pay(){S.merit-=mg}}:{how:`需要 银两 ${fc}，或者 功德 ${mg}`,ok:false,pay(){}};
   const helperOpt=p=>{const wu=p.type==='武';const risky=isAssassin(p)&&!assassinFree(p);const hit=wu?CFG.tribHit-10:0,xdx=wu?0:-5;
     return {label:`请${p.name}护法`,_v:pv(100,hit,xdx),hint:`${p.type}类：护体 100，${wu?`没挡住的天雷只扣护体 ${CFG.tribHit-10}`:'悟道的悟性要求 −5'}；${p.name}好感 +10${risky?`；${p.name}心结未解，有 10% 几率临阵退缩（只剩护体 70、没有加成）`:''}`,
       run(){if(risky&&Math.random()<0.1){S.merit-=mc;tribRun(key,70,null,xd,{flinch:p});return}run(100,p,{hit:hit||0,xdx})}}};
@@ -421,7 +421,7 @@ function tribScene(key){
   const tip=pv(70)==='必定成功'?'以你现在的根骨和悟性，闭关稳固就必定成功。':best.includes('必定成功')?'闭关稳固不够稳，做好准备或请道侣护法就能必定成功。':best.some(x=>x&&x.startsWith('有风险'))?'怎么准备都有风险，也可以再等等，先练根骨和悟性。':'现在怎么准备都过不去，建议再等等，先练根骨和悟性。';
   const opts=[
     {label:'闭关稳固，直接渡劫',_v:pv(70),hint:'不花费，护体 70',run(){run(70)}},
-    {label:'备好护体再渡劫',_v:prep.ok?pv(100):'必败',hint:`护体 100，${prep.how}`,disabled:!prep.ok,run(){prep.pay();run(100)}}];
+    {label:'备好护体再渡劫',_v:prep.ok?pv(100):'必败',hint:`护体 100，${prep.how}`,disabled:!prep.ok,run(){const go=()=>{prep.pay();run(100)};if(prep.silver)askPay({bg:'修行',title:'炼制护体法宝？',text:`确定花钱炼制护体法宝，备好护体再渡劫吗？\n护体 100，功德照常消耗 ${mc}。`,cost:fc,yes:'确定，开始渡劫',run:go,back:()=>queue.unshift(tribScene(key))});else go()}}];
   if(ms.length===1)opts.push(helperOpt(ms[0]));
   else if(ms.length>1)opts.push({label:'请道侣护法',hint:'护体 100，外加道侣的加成；点进去选请哪一位',run(){queue.unshift({who:me(),tag:'渡劫',title:`${T.name}：请谁护法`,text:'请哪一位道侣为你护法？',options:[...ms.map(helperOpt),{label:'返回',hint:'回到渡劫准备',run(){queue.unshift(tribScene(key))}}]})}});
   opts.push({label:'再等等',hint:'先不渡劫，继续修炼根骨和悟性',run(){}});
@@ -554,8 +554,8 @@ function deedScene(){
   const [n,c0]=DEEDS[S.month];const c=Math.round(c0*rankMul());const x=S.month===7?CFG.deedXinmo*2:CFG.deedXinmo;const m=Math.round(10*rankMul());const done=deedDone();
   const go=(t,cost,eff,ap)=>{if(cost)S.silver-=cost;if(ap){spend('游历','deed');}S.deedMi=mi();logAdd(n);result(n,`${t}\n（${apply(eff,null,true)}）`)};
   queue.unshift({who:me(),bg:'行善',title:'行善',text:`本月善事：${n}。\n每月只能选一种做法。功德是渡劫要消耗的，越往后需要越多。`+(done?'\n\n这个月的善事已经做过了。':''),options:[
-    {label:`重金${n}`,hint:done?'这个月已经做过了':`花费 银两 ${c*2}；功德 +${m*2}，民心 +2，心魔 −${x}；不占行动力`,disabled:done||S.silver<c*2,run(){go('你出了大笔银子，事情办得风风光光。',c*2,{merit:m*2,minxin:2,xinmo:-x})}},
-    {label:`略尽心意`,hint:done?'这个月已经做过了':`花费 银两 ${Math.round(c/2)}；民心 +3；不占行动力`,disabled:done||S.silver<Math.round(c/2),run(){go('你拨了些银子，交给地方去办。',Math.round(c/2),{minxin:3})}},
+    {label:`重金${n}`,hint:done?'这个月已经做过了':`花费 银两 ${c*2}；功德 +${m*2}，民心 +2，心魔 −${x}；不占行动力`,disabled:done||S.silver<c*2,run(){askPay({bg:'行善',title:`重金${n}？`,text:`确定要重金${n}吗？\n功德 +${m*2}，民心 +2，心魔 −${x}。`,cost:c*2,yes:`确定重金${n}`,back:deedScene,run:()=>go('你出了大笔银子，事情办得风风光光。',c*2,{merit:m*2,minxin:2,xinmo:-x})})}},
+    {label:`略尽心意`,hint:done?'这个月已经做过了':`花费 银两 ${Math.round(c/2)}；民心 +3；不占行动力`,disabled:done||S.silver<Math.round(c/2),run(){askPay({bg:'行善',title:'略尽心意？',text:`确定要为${n}略尽心意吗？\n民心 +3。`,cost:Math.round(c/2),yes:'确定',back:deedScene,run:()=>go('你拨了些银子，交给地方去办。',Math.round(c/2),{minxin:3})})}},
     {label:`亲力亲为`,hint:done?'这个月已经做过了':S.ap<=0?'行动力不够':`消耗 行动力 1，不花钱；功德 +${Math.round(m*1.5)}，民心 +3，心魔 −${x*2}`,disabled:done||S.ap<=0,run(){go('你挽起袖子亲自去办，百姓看在眼里。',0,{merit:Math.round(m*1.5),minxin:3,xinmo:-x*2},true)}},
     {label:'返回',run(){}}]});
 }
@@ -750,10 +750,10 @@ function visit(p,pos){
   if(!p.married&&p.bondN>=2&&p.aff>=CFG.marryAff){const full=married().length>=cap();const price=brideCost(p),poor=S.silver<price;
     const wed=()=>{if(S.silver<price)return;S.silver-=price;p.married=true;p.marriedMi=mi();p.aff=clamp(p.aff+10,0,100);const others=married().length-1;if(others>0)S.harmony=clamp(S.harmony-5,0,100);
       logAdd(`与${p.name}结为道侣`);result('结为道侣',`三书六礼，红绸满府。从此以后，${p.name}便是你的道侣。\n（聘礼 银两 −${price}`+(others>0?'，新人入府，后宅安宁 −5':'')+'）',p)};
-    if(!full)opts.unshift({label:'提亲',hint:poor?`银两不够（聘礼 ${price}）`:`花费 聘礼 银两 ${price}；结为道侣`+(married().length?'；新人入府，后宅安宁 −5':''),disabled:poor,run:wed});
+    if(!full)opts.unshift({label:'提亲',hint:poor?`银两不够（聘礼 ${price}）`:`花费 聘礼 银两 ${price}；结为道侣`+(married().length?'；新人入府，后宅安宁 −5':''),disabled:poor,run(){askPay({who:p,bg:'后宅',title:`向${p.name}提亲？`,text:`确定要向${p.name}提亲吗？\n聘礼按她的才貌和你的帝业算。成亲后她就是你的道侣`+(married().length?'；新人入府，后宅安宁 −5':'')+'。',cost:price,yes:'确定提亲',run:wed,back:()=>visit(p)})}});
     else opts.unshift({label:'提亲（需先休离一位）',hint:poor?`银两不够（聘礼 ${price}）`:`道侣已满 ${cap()} 位；选一位休离，再迎娶${p.name}（${cmTxt(p)}）；聘礼 银两 ${price}`,disabled:poor,run(){useTalk(p);
       queue.unshift({who:p,title:`迎娶${p.name}`,text:`道侣已满 ${cap()} 位。要迎娶${p.name}（${cmTxt(p)}），得先休离一位：`,options:[...married().map(q=>{const x=divorceXinmo(q);return {label:`休离${q.name}`,hint:`${cmTxt(q)}，好感 ${q.aff}；心魔 +${x}，后宅安宁 −10`,run(){
-          queue.unshift({who:q,title:`确认休离${q.name}？`,text:`你确定要休离${q.name}（好感 ${q.aff}，${cmTxt(q)}），迎娶${p.name}吗？\n${q.name}会离开，从此不再回来。\n（心魔 +${x}，后宅安宁 −10；新人入府，后宅安宁 −5）`,options:[
+          queue.unshift({who:q,title:`确认休离${q.name}？`,text:`你确定要休离${q.name}（好感 ${q.aff}，${cmTxt(q)}），迎娶${p.name}吗？\n${q.name}会离开，从此不再回来。\n（心魔 +${x}，后宅安宁 −10；新人入府，后宅安宁 −5；聘礼 银两 −${price}，现有 ${S.silver}）`,options:[
             {label:`确定休离${q.name}`,hint:`心魔 +${x}，后宅安宁 −10，然后迎娶${p.name}`,run(){S.partners=S.partners.filter(z=>z!==q);S.xinmo=clamp(S.xinmo+x,0,100);S.harmony=clamp(S.harmony-10,0,100);logAdd(`休离${q.name}`);wed();queue.unshift({who:q,title:'休离',text:`${q.name}收拾好行装走了。\n（心魔 +${x}，后宅安宁 −10）`,options:[{label:'继续',run(){}}]})}},
             {label:'算了',hint:'不休离，也暂不提亲',run(){}}]})}}}),{label:'算了',hint:'暂不提亲',run(){}}]})}})}
   if(!p.married){const c=dismissCost(p);opts.push({label:'遣散',hint:S.silver<c?`银两不够（遣散费 ${c}）`:`付遣散费 银两 ${c}（按才貌算），后宅安宁 −${CFG.dismissHarmony}；${p.name}会离开，不再回来`,disabled:S.silver<c,run(){
@@ -798,6 +798,9 @@ function divorceScene(p){const x=divorceXinmo(p);
 /* ================= 行动 ================= */
 const dateTxt=()=>`第${S.year}年${MONTHS[S.month]}`;
 const markPhase=()=>{S.actLabel=dateTxt()};
+/* 花钱前再确认一次（「再想想」回到刚才的选择，不花钱） */
+function askPay(o){queue.unshift({who:o.who||me(),tag:'确认花费',bg:o.bg,title:o.title,text:`${o.text}\n\n这次要花 银两 ${fmt(o.cost)}（现有 ${fmt(S.silver)}）。`,
+  options:[{label:o.yes,hint:`银两 −${fmt(o.cost)}`,run:o.run},{label:'再想想',hint:'不花钱，回到刚才的选择',run:o.back||(()=>{})}]})}
 function spend(d,id){markPhase();S.ap--;S.stat[d]=(S.stat[d]||0)+1}
 function afterAct(d,bonus){
   if(Math.random()>=CFG.actEventChance+bonus)return;
@@ -838,7 +841,8 @@ function doAction(d){
     const dn=house||a.noDim?1:dimMul(a.id);
     opts.push({label:a.label,hint:(a.noDim&&actN(a.id)>0?'本月再炼，花费更高；':'')+(dn<1&&!full?`本月再做收益只有 ${Math.round(dn*100)}%；`:'')+(maxed?`府中守卫已满 +${CFG.guardMax}`:full?`修为已积满，这次闭关不涨修为；`+trainTxt('gengu',1):capped?`悟性已到当前上限 ${attrCap()}，突破大境界后才能继续参悟`:used?'这个月已经做过了':actHint(a)+(a.train?'；'+trainTxt(a.train):'')+(house?'；每月一次，不占行动力':'')),disabled:noAp||capped||maxed||used||!!(c&&!afford(c)),
       run(){if(c)pay(c);if(house){S.monthUsed=S.monthUsed||{};S.monthUsed[a.id]=mi()}else spend(d,a.id);const dm=house||a.noDim?1:dimMul(a.id);if(!house)useAct(a.id);if(a.lottery){const sd=seekDraw(dm);result(a.label,`${a.text}\n${sd.text}`);if(sd.after)queue.splice(1,0,sd.after);return}
-      const r=apply(dimEff(a.eff(),dm));const tr=a.train?train(a.train,a.trainMul):'';result(a.label,`${a.text}\n（${[r,tr].filter(Boolean).join('，')}）`);if(!house)afterAct(d,a.evBonus||0)}})});
+      const r=apply(dimEff(a.eff(),dm));const tr=a.train?train(a.train,a.trainMul):'';result(a.label,`${a.text}\n（${[r,tr].filter(Boolean).join('，')}）`);if(!house)afterAct(d,a.evBonus||0)}});
+    const o=opts[opts.length-1];if(c&&c.silver>0&&!o.disabled){const r0=o.run;o.run=()=>askPay({bg:d,title:`${a.label}？`,text:`确定要${a.label}吗？\n${o.hint}`,cost:c.silver,yes:`确定${a.label}`,run:r0,back:()=>doAction(d)})}});
   if(house)opts.forEach(o=>{const r=o.run;o.run=function(){backTo='后宅';return r.apply(this,arguments)}});
   opts.push({label:'返回',hint:'不消耗行动力',run(){backTo=''}});
   queue.push({who:me(),bg:d,title:d,text:menuInfo(d)+(house?`\n\n后宅里的事都不占行动力。没结亲的人每月可以互动 ${CFG.talkPerMonth} 次，道侣每月 ${CFG.talkMarried} 次。`:`\n\n每件事用 1 点行动力（本月还剩 ${S.ap} 点）。做完后可能顺带遇到随机事件，随机事件不占行动力。`),options:opts});
