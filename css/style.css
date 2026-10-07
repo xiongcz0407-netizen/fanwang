@@ -262,3 +262,9 @@ details.help p{white-space:pre-line;margin:0 0 12px;line-height:1.7;font-size:15
 .ldel{flex:none;width:52px;border:1px solid var(--line);background:rgba(var(--veil),.9);border-radius:6px;color:var(--muted);font-size:13px;cursor:pointer}
 .ldel:hover{color:var(--cinnabar);border-color:var(--cinnabar)}
 .lfoot{margin-top:auto;margin-bottom:0;padding-top:18px;text-align:center;font-size:12.5px;color:var(--muted);letter-spacing:.15em}
+.lver{margin-left:1.2em}
+.login .opt.lupd{text-align:center;border:1px solid var(--gold);border-left-width:1px;border-radius:10px;background:rgba(166,116,26,.12);animation:lpulse 1.6s ease-in-out infinite}
+.login .opt.lupd b{color:var(--gold);font-size:16px;letter-spacing:.1em}
+@keyframes lpulse{50%{box-shadow:0 0 0 4px rgba(166,116,26,.18)}}
+.updbar{display:block;width:100%;margin-top:6px;padding:5px 10px;border:1px solid var(--gold);border-radius:6px;background:rgba(166,116,26,.12);color:var(--gold);font-size:13px;text-align:center;cursor:pointer}
+.updbar.warn{border-color:var(--cinnabar);color:var(--cinnabar);background:rgba(176,57,45,.08)}

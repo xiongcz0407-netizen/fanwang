@@ -1,3 +1,4 @@
+const APP_V=92;   // 打包时写入的版本号
 /* ================= 云端存档 =================
    用户名 + 6 位口令登录，每个用户 3 个存档位，存档放在 GitHub 私有仓库里（读写接口见 ghsave.js，它会替换下面的 cloudApi / cloudBeacon）。
    本机仍然保留一份当前存档（xw_save），断网时照常玩，联网后下次保存会自动补传。
@@ -75,8 +76,35 @@ async function cloudDel(i){
 function cloudNew(i){cloudMsg='';SLOT=i;LS.set('xw_slot',i);S=null;queue=[];title=false;titleSub='';cloudPushed='';LS.del('xw_save');LS.set('xw_savemeta',{name:ACCT.name,slot:i,savedAt:0});render()}
 /* 标题页：没登录时显示登录；登录后显示三个存档位 */
 let cloudPin2=false;                 // 新建账号时要再输一次口令
-const cloudFoot='<p class="lfoot">作者：小熊cz</p>';
-const cloudHead=sub=>`<div class="lhead"><div class="lseal">藩</div><h2 class="ttl">藩王修仙录</h2><p class="lsub">${sub}</p></div>`;
+/* 版本号与检查更新：打包时写入 APP_V，网站上的 version.json 是最新版本号（每次都不走缓存地去读）
+   还没开始玩（登录页、选存档、起名）时发现新版本：自动刷新；正在玩：顶部出一行提示，玩家自己点。 */
+const appV=()=>typeof APP_V!=='undefined'?APP_V:0;
+let newV=0,updWarn=false;
+const safeToUpd=()=>title||!S;                     // 没有进行中的一局
+function updTried(v){try{const t=JSON.parse(sessionStorage.getItem('xw_upd')||'null');return t&&t.v===v&&Date.now()-t.at<120000}catch(e){return false}}
+async function checkUpdate(){
+  if(!appV()||location.protocol==='file:')return;
+  try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
+    const v=+(j&&j.v)||0;if(v<=appV())return;
+    if(safeToUpd()&&!updTried(v)){doUpdate(v);return}   // 刚试过还是旧的（网站还没刷新完），就改成显示按钮，免得一直刷新
+    if(v!==newV){newV=v;render()}}catch(e){}
+}
+async function doUpdate(v){
+  try{sessionStorage.setItem('xw_upd',JSON.stringify({v:v||newV,at:Date.now()}))}catch(e){}
+  if(cloudOn()&&S){clearTimeout(cloudTimer);try{save();await cloudPush(true)}catch(e){}}   // 先把进度存到云端
+  location.replace(location.pathname+'?u='+Date.now());                                       // 换一个网址，绕过旧的缓存
+}
+checkUpdate();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
+setInterval(()=>{if(!document.hidden)checkUpdate()},10*60*1000);
+/* 游戏中：顶部状态栏下面加一行更新提示 */
+const _renderBase=render;
+render=function(){_renderBase();
+  if(newV&&!safeToUpd()){const st=$('#status');if(st&&!st.querySelector('.updbar')){if(!queue.length)updWarn=false;
+    st.insertAdjacentHTML('beforeend',`<button class="updbar${updWarn?' warn':''}" data-a="appUpd">${updWarn?'先处理完眼前的事，再点这里更新':`有新版本 v${newV}，点这里更新`}</button>`)}}};
+const cloudFoot=`<p class="lfoot">作者：小熊cz<span class="lver">版本 v${appV()}</span></p>`;
+const cloudUpd=()=>newV?`<button class="opt lupd" data-a="appUpd"><b>发现新版本 v${newV}</b><small>点这里更新（当前 v${appV()}），进度会先存到云端</small></button>`:'';
+const cloudHead=sub=>`<div class="lhead"><div class="lseal">藩</div><h2 class="ttl">藩王修仙录</h2><p class="lsub">${sub}</p></div>${cloudUpd()}`;
 function cloudTitleHTML(){
   if(!cloudCan())return null;        // 本地文件打开、或云端没配置好：用原来的标题页
   const msg=cloudMsg?`<div class="lmsg${/已建好|已读取/.test(cloudMsg)?' ok':''}">${esc(cloudMsg)}</div>`:'';
@@ -123,6 +151,7 @@ document.addEventListener('click',e=>{
   if(a==='cLogin'){const n=($('#lname')||{}).value||'',p=($('#lpin')||{}).value||'';
     if(!n.trim()||!/^\d{6}$/.test(p)){cloudMsg=cloudErrTxt('input');render();return}
     const nn=n.trim().slice(0,12);if(!ACCT||ACCT.name!==nn){SLOT=null;LS.del('xw_slot')}ACCT={name:nn,pin:p};cloudSlots=null;cloudLogin(false);return}
+  if(a==='appUpd'){if(!safeToUpd()&&queue.length){updWarn=true;render();return}b.disabled=true;doUpdate();return}
   if(a==='cCreate'){const p2=($('#lpin2')||{}).value||'';if(p2!==ACCT.pin){cloudMsg='两次输入的口令不一样，请再输一次。';render();return}cloudLogin(true);return}
   if(a==='cBack'){cloudConfirm=null;cloudMsg='';if(!cloudSlots){cloudLastName=ACCT&&ACCT.name||'';ACCT=null;LS.del('xw_acct')}render();return}
   if(a==='cToCloud'){ACCT=null;cloudSlots=null;cloudMsg='';title=true;titleSub='';render();return}
