@@ -991,8 +991,9 @@ function devlogHTML(){const L=typeof CHANGELOG!=='undefined'?CHANGELOG:[];
 function logHTML(){return `<div class="page"><div class="btns" style="margin-bottom:10px"><button class="small" data-a="tab" data-t="role">返回角色</button></div><h4 class="sub" style="margin-top:0">日志</h4>${S.log.length?`<ol class="log" reversed>${S.log.map(l=>`<li>${esc(l)}</li>`).join('')}</ol>`:'<p class="note">暂无记录。</p>'}</div>`}
 function saveHTML(){
   const ok=storageOK();const t=S&&S.savedAt?new Date(S.savedAt):null;
+  const cm=typeof cloudCan==='function'&&cloudCan()&&typeof ACCT!=='undefined'&&!!(ACCT&&ACCT.name);   // 云端版：存档在云端，不用存档码、存档文件
   return `<div class="page"><div class="hubhead"><h4 class="sub" style="margin-top:0">存档</h4><button class="small" data-a="tab" data-t="devlog">开发者说明</button></div>${fileMsg?`<div class="gmmsg">${esc(fileMsg)}</div>`:''}${typeof cloudSaveHTML==='function'?cloudSaveHTML():''}
-  <div class="qcard${ok?'':' warn'}"><p>${ok?'✓ 本浏览器可以自动保存。':'✗ 本浏览器现在无法保存进度（可能是无痕浏览模式），关掉页面进度就会丢。'}</p>
+  ${cm?'':`<div class="qcard${ok?'':' warn'}"><p>${ok?'✓ 本浏览器可以自动保存。':'✗ 本浏览器现在无法保存进度（可能是无痕浏览模式），关掉页面进度就会丢。'}</p>
   <p class="note">最近一次自动保存：${t?`${t.getMonth()+1}月${t.getDate()}日 ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}（游戏内 ${dateTxt()}）`:'还没有'}
 当前网址：${esc(location.host||'本地文件')}
 存档跟着「网址 + 浏览器」走：换了网址、换了浏览器，或者从 Safari 换到主屏幕图标打开，都是另一份存档。</p></div>
@@ -1002,8 +1003,8 @@ function saveHTML(){
   <textarea id="codeBox" placeholder="把存档码粘贴到这里" style="margin-top:8px;min-height:70px"></textarea>
   <div class="btns" style="margin-top:6px"><button class="small" data-a="pasteCode">读取上面的存档码</button><button class="small" data-a="toTitle">回到标题页</button></div>
   <h4 class="sub">存档文件（电脑用）</h4><p class="note">保存成文件，放进 saves 文件夹，或者换电脑时读取。</p>
-  <div class="btns" style="margin-top:10px"><button class="small" data-a="exportSave">导出存档文件</button><label class="small">读取存档文件<input type="file" accept=".json" data-file="save" hidden></label></div>
-  <h4 class="sub">重新开始</h4><p class="note">删除当前进度，回到起名界面重新开一局。删除前想留着这一局，先点上面的「导出存档文件」。</p>
+  <div class="btns" style="margin-top:10px"><button class="small" data-a="exportSave">导出存档文件</button><label class="small">读取存档文件<input type="file" accept=".json" data-file="save" hidden></label></div>`}
+  <h4 class="sub">重新开始</h4><p class="note">${cm?'删除这个存档位的进度，回到起名界面重新开一局。删除后找不回来。':'删除当前进度，回到起名界面重新开一局。删除前想留着这一局，先点上面的「导出存档文件」。'}</p>
   <div class="btns" style="margin-top:8px">${restartArm?'<button class="small danger" data-a="restart">确定删除并重新开始</button><button class="small" data-a="restartNo">取消</button>':'<button class="small" data-a="restartAsk">重新开始</button>'}</div></div>`;
 }
 function navHTML(){
