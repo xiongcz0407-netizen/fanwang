@@ -80,6 +80,7 @@ let cloudPin2=false;                 // 新建账号时要再输一次口令
    还没开始玩（登录页、选存档、起名）时发现新版本：自动刷新；正在玩：顶部出一行提示，玩家自己点。 */
 const appV=()=>typeof APP_V!=='undefined'?APP_V:0;
 let newV=0,updWarn=false;
+const verTxt=v=>(v/100).toFixed(2);          // 显示用：内部版本号 92 显示成 0.92，每次更新 +0.01
 const safeToUpd=()=>title||!S;                     // 没有进行中的一局
 function updTried(v){try{const t=JSON.parse(sessionStorage.getItem('xw_upd')||'null');return t&&t.v===v&&Date.now()-t.at<120000}catch(e){return false}}
 async function checkUpdate(){
@@ -101,9 +102,9 @@ setInterval(()=>{if(!document.hidden)checkUpdate()},10*60*1000);
 const _renderBase=render;
 render=function(){_renderBase();
   if(newV&&!safeToUpd()){const st=$('#status');if(st&&!st.querySelector('.updbar')){if(!queue.length)updWarn=false;
-    st.insertAdjacentHTML('beforeend',`<button class="updbar${updWarn?' warn':''}" data-a="appUpd">${updWarn?'先处理完眼前的事，再点这里更新':`有新版本 v${newV}，点这里更新`}</button>`)}}};
-const cloudFoot=`<p class="lfoot">作者：小熊cz<span class="lver">版本 v${appV()}</span></p>`;
-const cloudUpd=()=>newV?`<button class="opt lupd" data-a="appUpd"><b>发现新版本 v${newV}</b><small>点这里更新（当前 v${appV()}），进度会先存到云端</small></button>`:'';
+    st.insertAdjacentHTML('beforeend',`<button class="updbar${updWarn?' warn':''}" data-a="appUpd">${updWarn?'先处理完眼前的事，再点这里更新':`有新版本 ${verTxt(newV)}，点这里更新`}</button>`)}}};
+const cloudFoot=`<p class="lfoot">作者：小熊cz<span class="lver">版本 ${verTxt(appV())}</span></p>`;
+const cloudUpd=()=>newV?`<button class="opt lupd" data-a="appUpd"><b>发现新版本 ${verTxt(newV)}</b><small>点这里更新（当前 ${verTxt(appV())}），进度会先存到云端</small></button>`:'';
 const cloudHead=sub=>`<div class="lhead"><div class="lseal">藩</div><h2 class="ttl">藩王修仙录</h2><p class="lsub">${sub}</p></div>${cloudUpd()}`;
 function cloudTitleHTML(){
   if(!cloudCan())return null;        // 本地文件打开、或云端没配置好：用原来的标题页
