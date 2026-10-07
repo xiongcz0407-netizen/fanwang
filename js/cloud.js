@@ -1,4 +1,4 @@
-const APP_V=100;   // 打包时写入的版本号
+const APP_V=102;   // 打包时写入的版本号
 /* ================= 云端存档 =================
    用户名 + 6 位口令登录，每个用户 3 个存档位，存档放在 GitHub 私有仓库里（读写接口见 ghsave.js，它会替换下面的 cloudApi / cloudBeacon）。
    本机仍然保留一份当前存档（xw_save），断网时照常玩，联网后下次保存会自动补传。
@@ -31,7 +31,7 @@ function cloudAfterSave(){if(!cloudOn()||!S||!cloudCan())return;clearTimeout(clo
 async function cloudPush(force){
   if(!cloudOn()||!S||!cloudCan())return;
   const data=JSON.stringify(S);if(!force&&data===cloudPushed)return;cloudLastPush=Date.now();
-  try{const j=await cloudApi('save',{slot:SLOT,data,brief:cloudBrief(S)});
+  try{const j=await cloudApi('save',{slot:SLOT,data,brief:cloudBrief(S),meta:typeof achExport==='function'?achExport():undefined});
     if(j.ok){cloudPushed=data;cloudLast={ok:true,at:j.savedAt,err:''};LS.set('xw_savemeta',{name:ACCT.name,slot:SLOT,savedAt:j.savedAt})}
     else cloudLast={ok:false,at:Date.now(),err:j.err};
   }catch(e){cloudLast={ok:false,at:Date.now(),err:'net'}}
@@ -47,7 +47,7 @@ async function cloudLogin(create){
   if(!cloudCan()){cloudMsg='现在是本地文件打开的，用不了云端存档。可以选「不登录，只在本机玩」。';render();return}
   cloudBusy=true;cloudMsg='';render();
   try{const j=await cloudApi('login',{create:!!create});cloudBusy=false;
-    if(j.ok){LS.set('xw_acct',ACCT);LS.set('xw_lastname',ACCT.name);cloudSlots=j.slots;cloudConfirm=null;cloudMsg=j.created?'新账号已建好。请记住用户名和口令，忘了口令就找不回存档。':''}
+    if(j.ok){LS.set('xw_acct',ACCT);LS.set('xw_lastname',ACCT.name);if(typeof achMergeRemote==='function')achMergeRemote(j.meta);cloudSlots=j.slots;cloudConfirm=null;cloudMsg=j.created?'新账号已建好。请记住用户名和口令，忘了口令就找不回存档。':''}
     else if(j.err==='nouser'){cloudConfirm='create'}
     else{cloudMsg=cloudErrTxt(j.err);if(j.err==='pin'||j.err==='locked'){cloudLastName=ACCT.name;ACCT=null;LS.del('xw_acct')}}
   }catch(e){cloudBusy=false;cloudMsg=cloudErrTxt('net')}

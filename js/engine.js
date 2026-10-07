@@ -110,7 +110,9 @@ function acceptTip(){const t=[];const over=S.troops-freeTroops();
   return t.join('；')+'。兵太多时记得切换成婉拒。'}
 const upkeep=()=>Math.round(Math.max(0,S.troops-freeTroops())/100*CFG.upkeepPer100*(S.route==='a'&&S.rank>=7?0.5:1));
 
-const save=()=>{if(S){S.savedAt=Date.now();LS.set('xw_save',S);if(typeof cloudAfterSave==='function')cloudAfterSave()}};
+/* 成就与数据的记录点（js/ach.js；没加载时什么都不做） */
+const ev=(k,a)=>{if(typeof achEv==='function')try{achEv(k,a)}catch(e){}};
+const save=()=>{if(S){if(typeof achEval==='function')try{achEval()}catch(e){}S.savedAt=Date.now();LS.set('xw_save',S);if(typeof cloudAfterSave==='function')cloudAfterSave()}};
 function storageOK(){try{localStorage.setItem('xw_t','1');const ok=localStorage.getItem('xw_t')==='1';localStorage.removeItem('xw_t');return ok}catch(e){return false}}
 const saveCode=o=>{const t=JSON.stringify(o||S);return typeof LZString!=='undefined'?'XW'+SAVE_V+'-'+LZString.compressToEncodedURIComponent(t):btoa(unescape(encodeURIComponent(t)))};
 function parseCode(code){code=String(code||'').replace(/\s+/g,'');if(!code)return null;
@@ -124,7 +126,7 @@ function backupScene(){if(typeof cloudOn==='function'&&cloudOn()){S.copyMi=mi();
   {label:'这次先不了',hint:'明年正月再提醒',run(){S.copyMi=mi()}}]}}
 function copyText(t,cb){const fb=()=>{try{const a=document.createElement('textarea');a.value=t;a.setAttribute('readonly','');a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();a.setSelectionRange(0,t.length);const ok=document.execCommand('copy');a.remove();cb(ok)}catch(e){cb(false)}};
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(()=>cb(true),fb);else fb()}
-const logAdd=t=>{S.log.unshift(`${S.logLbl||`第${S.year}年${MONTHS[S.month]}`}：${t}`);if(S.log.length>200)S.log.length=200};
+const logAdd=t=>{ev('log',t);S.log.unshift(`${S.logLbl||`第${S.year}年${MONTHS[S.month]}`}：${t}`);if(S.log.length>200)S.log.length=200};
 const me=()=>({isMe:true,name:S.name,g:S.gender,origin:S.rank>=10?'皇帝':S.gender==='m'?'王爷':'公主'});
 const opp=()=>S.gender==='m'?'f':'m';
 function fill(t,ctx){if(!t)return'';const p=ctx&&ctx.p,a=ctx&&ctx.a,b=ctx&&ctx.b;
@@ -250,11 +252,12 @@ function majorScene(t,ctx){
   const stepScene=i=>{const st=t.steps[i];return {who:ctx.p||ctx.a||ctx.who,tag:`大事件 ${i+1}/${n}`,title,text:fill(st.text,ctx),
     options:buildOpts(st.opts,ctx,o=>{
       const r=runOpt(o,ctx);const next=i+1<n?stepScene(i+1):(t.outro?{who:ctx.who,tag:'大事件',title,text:fill(t.outro,ctx),options:[{label:'继续',run(){}}]}:null);
+      if(!r.good)ctx._bad=1;if(ctx.ye&&i+1===n)ev('ye',!ctx._bad);
       if(next)queue.unshift(next);result(title,r.text,ctx.p||ctx.a||ctx.who,r.good)},SKIP_PENALTY[t.cat]||SKIP_PENALTY.默认)}};
   return {who:ctx.p||ctx.a||ctx.who,tag:'大事件',bg:bgOfOpts(t.steps[0]&&t.steps[0].opts),title,text:fill(t.intro,ctx),options:[{label:'应对',run(){markDone(t);logAdd(`大事件：${title}`);queue.unshift(stepScene(0))}}]};
 }
-function gameOver(title,text){S.over={title,text,win:false};logAdd(title);queue=[];save()}
-function victory(text){S.over={title:'羽化登仙',text,win:true};logAdd('羽化飞升');queue=[];save()}
+function gameOver(title,text){ev('end',title);S.over={title,text,win:false};logAdd(title);queue=[];save()}
+function victory(text){ev('win');S.over={title:'羽化登仙',text,win:true};logAdd('羽化飞升');queue=[];save()}
 
 /* ================= 道侣 ================= */
 function pickImg(g,st){st=st||S;const pool=(g==='f'?DAOLV_IMGS_F:DAOLV_IMGS_M)||[];if(!pool.length)return '';
@@ -433,10 +436,11 @@ function tribRun(key,hp,guard,xd,mod){
   ds.forEach((d,i)=>{if(S.attr.gengu>=d){hp-=10;L.push(`${T.rounds[i]}\n→ 这道天雷要根骨 ${d}，你 ${S.attr.gengu}，挡下了，护体 −10。`)}
     else{hp-=hit;failed++;L.push(`${T.rounds[i]}\n→ 这道天雷要根骨 ${d}，你 ${S.attr.gengu}，没挡住，护体 −${hit}。`)}});
   const fall=()=>{S.injured=3;S.realm=Math.max(1,S.realm-1);S.xiuwei=0};
-  if(hp<=0){if(S.xinmo>60){gameOver('渡劫陨落','护体尽碎，心魔趁虚而入。你没能走出这场劫。');return}
-    fall();L.push(`护体破碎。${T.fail}（跌回${realmName(S.realm)}，重伤三月）`);logAdd(`${T.name}失败`);result('渡劫失败',L.join('\n\n'));return}
+  if(hp<=0){if(S.xinmo>60){ev('trib',{ok:false});gameOver('渡劫陨落','护体尽碎，心魔趁虚而入。你没能走出这场劫。');return}
+    ev('trib',{ok:false});fall();L.push(`护体破碎。${T.fail}（跌回${realmName(S.realm)}，重伤三月）`);logAdd(`${T.name}失败`);result('渡劫失败',L.join('\n\n'));return}
   const xok=S.attr.wuxing>=xd;L.push(`${T.xinmo}\n→ 第四关悟道：悟性 ${S.attr.wuxing}${xok?' ≥ ':' < '}${xd}，${xok?'守住了本心':'没能守住'}。`);
-  if(!xok){fall();S.xinmo=clamp(S.xinmo+10,0,100);L.push(`${T.fail}（跌回${realmName(S.realm)}，重伤三月，心魔 +10）`);logAdd(`${T.name}失败`);result('渡劫失败',L.join('\n\n'));return}
+  if(!xok){ev('trib',{ok:false});fall();S.xinmo=clamp(S.xinmo+10,0,100);L.push(`${T.fail}（跌回${realmName(S.realm)}，重伤三月，心魔 +10）`);logAdd(`${T.name}失败`);result('渡劫失败',L.join('\n\n'));return}
+  ev('trib',{ok:true,perfect:!failed});
   if(key==='feisheng'){S.realm=27;victory(T.win);return}
   S.realm++;S.xiuwei=carryXiu(xiuNeed(S.realm-1));Object.keys(ATTR).forEach(k=>gainAttr(k,failed?2:3));
   L.push(`${T.win}\n${failed?'':'完美渡劫！'}脱胎换骨：全部属性 +${failed?2:3}，属性上限提高到 ${attrCap()}。`);
@@ -466,7 +470,7 @@ function yearEndEvent(){
   if(k==='刺杀'){assassination();return}
   const pool=EV_YEAREND.filter(t=>t.kind===k&&condOK(t.cond));const t=pool.length?pick1(pool):null;
   if(!t){assassination();return}
-  const wb=k==='战乱'?warBonus():0;const sc=majorScene(t,wb?{bonus:wb}:{});sc.tag=`年末大事：${k}`;if(wb)sc.text+=`\n\n（私兵训练有素：这场战事里每一关的属性都 +${wb}）`;queue.push(sc);
+  const wb=k==='战乱'?warBonus():0;const sc=majorScene(t,wb?{bonus:wb,ye:1}:{ye:1});sc.tag=`年末大事：${k}`;if(wb)sc.text+=`\n\n（私兵训练有素：这场战事里每一关的属性都 +${wb}）`;queue.push(sc);
 }
 /* 训练度让打仗更容易：年末战乱每关属性加成 */
 const warBonus=()=>Math.floor(S.train/CFG.warTrainStep);
@@ -479,7 +483,7 @@ const popMul=()=>1+0.5*(S.rank-1);
 const volunteers=()=>S.minxin>=CFG.recruitMin?Math.round((S.minxin-CFG.recruitOffset)*CFG.recruitMul*popMul()):0;
 /* 刺客夜袭：每月都可能发生，猜忌越高越频繁。防刺客总加成达标才能拿下 */
 const raidReq=()=>10+(S.rank-1)*5;
-function raidScene(){const q=raidReq();const lostOf=()=>Math.round(S.silver*0.05);const injN=()=>S.injured>0?S.injured+1:1;
+function raidScene(){ev('raid');const q=raidReq();const lostOf=()=>Math.round(S.silver*0.05);const injN=()=>S.injured>0?S.injured+1:1;
   return {who:me(),tag:'刺客夜袭',bg:'军务',title:'夜半刀光',get text(){return `深夜，王府后院传来瓦片碎裂声，有人摸进来了。\n（防刺客总加成 ${guardBonus()}，拿下需要 ${q}：${guardTxt()}）`},options:[
     {label:'暗哨收网，当场拿下',get hint(){return `需要防刺客加成 ${q}（你 ${guardBonus()}）；奖励：功德 +${Math.round(3*rankMul())}；守卫折损 −${CFG.raidGuardWear}`},reward:true,get disabled(){return guardBonus()<q},run(){logAdd('夜袭的刺客被拿下');S.guard=Math.max(0,S.guard-CFG.raidGuardWear);result('夜袭',`暗哨早有准备，刺客还没摸到书房就被按在了地上。\n（${apply({merit:3})}，守卫 −${CFG.raidGuardWear}）`)}},
     {label:'惊醒迎敌',get hint(){return `后果：下月起负伤 ${injN()} 个月，库房被劫 银两 −${lostOf()}，守卫折损 −${CFG.raidGuardWear}`},run(){const lost=lostOf();S.injured=injN();S.silver-=lost;S.guard=Math.max(0,S.guard-CFG.raidGuardWear);logAdd('夜袭受伤');result('夜袭',`你从睡梦中惊起，挨了一刀，刺客卷了库房的银子跑了。\n（下月起负伤 ${S.injured} 个月，银两 −${lost}，守卫 −${CFG.raidGuardWear}）`)}}]}}
@@ -490,15 +494,15 @@ const newAssassin=()=>{const g=opp();const type=Math.random()<0.5?'武':'文';re
 const assnLook=a=>`${a.name}：${cmTxt(a)}，${a.type}类`;
 function assassination(monthly){
   const a=newAssassin();const g=a.g;const guard=guardBonus();const d=assassinReq();
-  S.guard=Math.max(0,S.guard-CFG.assassinGuardWear);S.intel=0;
-  const win=k=>{logAdd(`擒获刺客${a.name}`);queue.unshift(prisonerScene(a));result('刺杀',`【${ATTR[k]} ${S.attr[k]} + 加成 ${guard} ≥ ${d}】\n刺客被你制住，押了下去。`,a)};
+  S.guard=Math.max(0,S.guard-CFG.assassinGuardWear);S.intel=0;ev('assn');
+  const win=k=>{if(!monthly)ev('ye',true);logAdd(`擒获刺客${a.name}`);queue.unshift(prisonerScene(a));result('刺杀',`【${ATTR[k]} ${S.attr[k]} + 加成 ${guard} ≥ ${d}】\n刺客被你制住，押了下去。`,a)};
   const open=a.type==='武'?(monthly?`深夜，王府后院传来一声轻响。一道身影自梁上掠下，是一名${g==='f'?'女':'男'}刺客，招招直取要害。`:`年末守岁，府中灯火通明。一道身影自梁上掠下，是一名${g==='f'?'女':'男'}刺客，招招直取要害。`)
     :`一位自称高门${g==='f'?'小姐':'公子'}的人递帖求见，说仰慕殿下文名，想讨教诗文。席间谈笑风生，${g==='f'?'她':'他'}袖中却寒光一闪。`;
   queue.push({who:a,tag:monthly?'刺客':'年末大事：刺杀',title:'刺杀',text:`${open}\n（防刺客加成 +${guard}：${guardTxt()}）`,options:[
     {label:'正面迎战',attr:'wulue',hint:needTxt('wulue',d,guard)+'；奖励：擒获刺客',disabled:S.attr.wulue+guard<d,run(){win('wulue')}},
     {label:a.type==='武'?'设局诱擒':'识破伪装，当场拿下',hint:needTxt('xinji',d,guard)+'；奖励：擒获刺客',disabled:S.attr.xinji+guard<d,run(){win('xinji')}},
     {label:'闭门死守',hint:S.injured>0||S.hurt?'后果：旧伤未愈又添新伤，下月起负伤 6 个月，心魔 +10':'后果：下月起负伤 3 个月，刺客逃走',run(){
-      const old=S.injured>0||!!S.hurt;S.injured=old?6:3;if(old)S.xinmo=clamp(S.xinmo+10,0,100);logAdd('遇刺重伤');result('刺杀',`刀锋入肉，你重伤倒地，刺客趁乱逃走。\n（下月起负伤 ${S.injured} 个月${old?'，心魔 +10':''}）`,a)}}]});
+      if(!monthly)ev('ye',false);const old=S.injured>0||!!S.hurt;S.injured=old?6:3;if(old)S.xinmo=clamp(S.xinmo+10,0,100);logAdd('遇刺重伤');result('刺杀',`刀锋入肉，你重伤倒地，刺客趁乱逃走。\n（下月起负伤 ${S.injured} 个月${old?'，心魔 +10':''}）`,a)}}]});
 }
 function prisonerScene(a,again){
   const ta=a.g==='f'?'她':'他';const full=S.partners.length>=CFG.knownMax;
@@ -517,7 +521,7 @@ function prisonerScene(a,again){
       const add=()=>{S.partners.push(p);S.bodyguard=Math.min(10,(S.bodyguard||0)+5);logAdd(`收服刺客${a.name}`);return `${a.name}沉默良久，终于跪下：「这条命，以后是殿下的。」\n（防刺客加成永久 +5，${a.name}好感 10）`};
       if(full){queue.unshift(replaceScene(p,`${a.name}愿意归顺。`,add,{label:'算了',hint:'不收服，回去重新处置',run(){queue.unshift(prisonerScene(a,again))}}));return}
       result('收服',add(),p)}},
-    {label:'释放',hint:`功德 +${Math.round(20*rankMul())}，心魔 −8；对方回去报信，猜忌 +8`,run(){result('释放',`你命人解开绳索，放${a.name}离去。${ta}回头看了你一眼。\n（${apply({merit:20,xinmo:-8,suspicion:8})}）`)}}]};
+    {label:'释放',hint:`功德 +${Math.round(20*rankMul())}，心魔 −8；对方回去报信，猜忌 +8`,run(){ev('release');result('释放',`你命人解开绳索，放${a.name}离去。${ta}回头看了你一眼。\n（${apply({merit:20,xinmo:-8,suspicion:8})}）`)}}]};
 }
 
 /* ================= 逼供后的报复 =================
@@ -552,7 +556,7 @@ const deedDone=()=>S.deedMi===mi();
 /* 行善：每月可以选一件，三种做法各有取舍（只能选一种） */
 function deedScene(){
   const [n,c0]=DEEDS[S.month];const c=Math.round(c0*rankMul());const x=S.month===7?CFG.deedXinmo*2:CFG.deedXinmo;const m=Math.round(10*rankMul());const done=deedDone();
-  const go=(t,cost,eff,ap)=>{if(cost)S.silver-=cost;if(ap){spend('游历','deed');}S.deedMi=mi();logAdd(n);result(n,`${t}\n（${apply(eff,null,true)}）`)};
+  const go=(t,cost,eff,ap)=>{ev('deed');if(cost)S.silver-=cost;if(ap){spend('游历','deed');}S.deedMi=mi();logAdd(n);result(n,`${t}\n（${apply(eff,null,true)}）`)};
   queue.unshift({who:me(),bg:'行善',title:'行善',text:`本月善事：${n}。\n每月只能选一种做法。功德是渡劫要消耗的，越往后需要越多。`+(done?'\n\n这个月的善事已经做过了。':''),options:[
     {label:`重金${n}`,hint:done?'这个月已经做过了':`花费 银两 ${c*2}；功德 +${m*2}，民心 +2，心魔 −${x}；不占行动力`,disabled:done||S.silver<c*2,run(){askPay({bg:'行善',title:`重金${n}？`,text:`确定要重金${n}吗？\n功德 +${m*2}，民心 +2，心魔 −${x}。`,cost:c*2,yes:`确定重金${n}`,back:deedScene,run:()=>go('你出了大笔银子，事情办得风风光光。',c*2,{merit:m*2,minxin:2,xinmo:-x})})}},
     {label:`略尽心意`,hint:done?'这个月已经做过了':`花费 银两 ${Math.round(c/2)}；民心 +3；不占行动力`,disabled:done||S.silver<Math.round(c/2),run(){askPay({bg:'行善',title:'略尽心意？',text:`确定要为${n}略尽心意吗？\n民心 +3。`,cost:Math.round(c/2),yes:'确定',back:deedScene,run:()=>go('你拨了些银子，交给地方去办。',Math.round(c/2),{minxin:3})})}},
@@ -679,7 +683,7 @@ function courtTick(L){
 }
 function monthEnd(){
   const L=[];
-  const inc=income();S.silver+=inc;L.push(`封地收入：银两 +${inc}`);
+  ev('month');const inc=income();ev('income',inc);S.silver+=inc;L.push(`封地收入：银两 +${inc}`);
   const up=upkeep();if(up>0){if(S.silver>=up){S.silver-=up;L.push(`军饷：银两 −${up}`)}else{const n=Math.ceil(S.troops*0.1);S.troops-=n;S.train=clamp(S.train-5,0,100);const had=S.silver;S.silver=0;L.push(`发不出军饷：库里 ${had} 两全部发掉还不够，私兵逃散 ${n} 人，训练度 −5`)}}
   const ns=apply({xiuwei:Math.round(S.attr.gengu*CFG.naturalPerGengu*lingMul())});if(ns)L.push('日常吐纳：'+ns);
   if(S.minxin>=CFG.recruitMin){const n=volunteers();
@@ -740,7 +744,7 @@ function visit(p,pos){
   if(n>0){
     if(p.married){const done=p.dual===mi(),m=dualMulOf(p)*CFG.dualRewardMul;
       opts.push({label:'双修',cls:'dual',hint:done?`这个月已经和${p.name}双修过了`:`随机得到一份奖励：修为、武功、文功、银两、功德、防刺客、降猜忌、疗伤、渡劫阵法之一；${p.type}类道侣更容易得到${p.type==='武'?'修为、武功、防刺客、疗伤、渡劫阵法':'银两、文功、降猜忌、功德'}。好感越深、才貌越出众，收获越好。${isAssassin(p)?`刺客出身：奖励更大，还可能替你暗中除掉政敌（猜忌 −15）；但也可能变成惩罚（负伤、心魔加重或猜忌上升）。`:''}每位道侣每月可以双修一次（和相处二选一），道侣越多，每月能双修的次数越多`,disabled:done,
-        run(){useTalk(p);p.dual=mi();const d=dualDraw(p);result('双修',d.sum?`${d.t}\n（${d.sum}）`:d.t,p,true);again()}})}
+        run(){ev('dual');useTalk(p);p.dual=mi();const d=dualDraw(p);result('双修',d.sum?`${d.t}\n（${d.sum}）`:d.t,p,true);again()}})}
     if(p.aff<100)shuffle(ACTS).slice(0,5).forEach(a=>{const k=p.known.includes(a);const val=p.prefs.includes(a)?CFG.affLike:a===p.taboo?-CFG.affTaboo:isAssassin(p)?1:CFG.affNormal;
       opts.push({label:a,hint:k?`好感 ${sg(val)}`:'',run(){useTalk(p);let t;
         if(val===CFG.affLike){t=`${p.name}眉眼都亮了，看得出很喜欢。`;S.harmony=clamp(S.harmony+1,0,100)}else if(val<0)t=`${p.name}脸色淡了下来，显然不喜欢。`;else t=`你与${p.name}${a}，相处融洽。`;
@@ -831,7 +835,7 @@ function doAction(d){
     run(){S.merit-=mc;S.calmMi=mi();S.xinmo=clamp(S.xinmo-CFG.meritCalmXinmo,0,100);logAdd('以功德化解心魔');result('化解心魔',`你把这些年行善积下的因果一一回想，胸中的郁结散了不少。\n（功德 −${mc}，心魔 −${CFG.meritCalmXinmo}）`)}})}
   if(d==='修行'){const mc=Math.round(CFG.meritStudyCost*rankMul()),used=S.mstudyMi===mi(),full=S.xiuwei>=xiuNeed(S.realm)*CFG.xiuBank,g=Math.round(CFG.retreatBase*0.6*lingMul()*realmMul());
     const blk=S.xinmo>=CFG.xinmoStop;opts.push({label:'以功德悟道',hint:used?'这个月已经悟过了':full?'修为已积满，先突破':blk?'心魔过重，修为不涨':`花费 功德 ${mc}；修为 +${fmt(g)}；每月一次，不占行动力`,disabled:used||full||blk||S.merit<mc,
-      run(){S.merit-=mc;S.mstudyMi=mi();const r=apply({xiuwei:Math.round(CFG.retreatBase*0.6*lingMul())});result('以功德悟道',`你把这些年的善缘一一回想，心境澄明，修为随之精进。\n（功德 −${mc}，${r}）`)}})}
+      run(){ev('mstudy');S.merit-=mc;S.mstudyMi=mi();const r=apply({xiuwei:Math.round(CFG.retreatBase*0.6*lingMul())});result('以功德悟道',`你把这些年的善缘一一回想，心境澄明，修为随之精进。\n（功德 −${mc}，${r}）`)}})}
   if(d==='修行'&&S.xiuwei>=xiuNeed(S.realm)&&S.realm<27){const b=breakInfo();opts.push({label:b.label,hint:b.hint+'；不占行动力',disabled:!b.ok,run:b.run})}
   if(house)S.partners.forEach(p=>{const n=talkLeft(p);opts.push({label:`看望${p.name}`,img:p.img,hint:`${p.origin}·${p.type}类，${stageOf(p.aff)}（好感 ${p.aff}），才貌 ${p.cm==null?(p.cm=rollCm()):p.cm}·${cmTier(p)[2]}${p.married?'，已结为道侣':''}；本月还可互动 ${n} 次`,disabled:n<=0,run(){visit(p);houseEvent()}})});
   ACTIONS[d].filter(a=>!a.cond||a.cond()).forEach(a=>{const c=a.cost?a.cost():null;const full=a.id==='retreat'&&S.xiuwei>=xiuNeed(S.realm)*CFG.xiuBank;
@@ -841,7 +845,7 @@ function doAction(d){
     const dn=house||a.noDim?1:dimMul(a.id);
     opts.push({label:a.label,hint:(a.noDim&&actN(a.id)>0?'本月再炼，花费更高；':'')+(dn<1&&!full?`本月再做收益只有 ${Math.round(dn*100)}%；`:'')+(maxed?`府中守卫已满 +${CFG.guardMax}`:full?`修为已积满，这次闭关不涨修为；`+trainTxt('gengu',1):capped?`悟性已到当前上限 ${attrCap()}，突破大境界后才能继续参悟`:used?'这个月已经做过了':actHint(a)+(a.train?'；'+trainTxt(a.train):'')+(house?'；每月一次，不占行动力':'')),disabled:noAp||capped||maxed||used||!!(c&&!afford(c)),
       run(){if(c)pay(c);if(house){S.monthUsed=S.monthUsed||{};S.monthUsed[a.id]=mi()}else spend(d,a.id);const dm=house||a.noDim?1:dimMul(a.id);if(!house)useAct(a.id);if(a.lottery){const sd=seekDraw(dm);result(a.label,`${a.text}\n${sd.text}`);if(sd.after)queue.splice(1,0,sd.after);return}
-      const r=apply(dimEff(a.eff(),dm));const tr=a.train?train(a.train,a.trainMul):'';result(a.label,`${a.text}\n（${[r,tr].filter(Boolean).join('，')}）`);if(!house)afterAct(d,a.evBonus||0)}});
+      ev('act',{id:a.id,n:a.id==='pill'?((a.eff()||{}).pill||0):1});const r=apply(dimEff(a.eff(),dm));const tr=a.train?train(a.train,a.trainMul):'';result(a.label,`${a.text}\n（${[r,tr].filter(Boolean).join('，')}）`);if(!house)afterAct(d,a.evBonus||0)}});
     const o=opts[opts.length-1];if(c&&c.silver>0&&!o.disabled){const r0=o.run;o.run=()=>askPay({bg:d,title:`${a.label}？`,text:`确定要${a.label}吗？\n${o.hint}`,cost:c.silver,yes:`确定${a.label}`,run:r0,back:()=>doAction(d)})}});
   if(house)opts.forEach(o=>{const r=o.run;o.run=function(){backTo='后宅';return r.apply(this,arguments)}});
   opts.push({label:'返回',hint:'不消耗行动力',run(){backTo=''}});
@@ -877,7 +881,7 @@ function newGame(name,g){
   const pages=INTRO(INTRO_T[g]);
   queue=pages.map(([t,x],k)=>({who:me(),title:t,text:x,options:[{label:k===pages.length-1?'入府':'继续',run(){}}]}));
   const c=CHAPTERS[0];queue.push({who:me(),tag:'阶段目标',title:`阶段目标：${c.name}（1/16）`,text:`${c.intro}\n\n目标：民心到 40，修到练气三层。期限：第 ${chDue()} 年腊月底（${chLeftTxt()}）。\n到期没完成会被朝廷问责，问责后只有 2 个月补救，补不上惩罚升级，连续三级补不上游戏结束。`,options:[{label:'开始',run(){}}]});
-  logAdd('贬谪至封地');
+  ev('new');logAdd('贬谪至封地');
 }
 
 /* ================= 渲染（竖屏手游布局） ================= */
@@ -1006,7 +1010,7 @@ function logHTML(){return `<div class="page"><div class="btns" style="margin-bot
 function saveHTML(){
   const ok=storageOK();const t=S&&S.savedAt?new Date(S.savedAt):null;
   const cm=typeof cloudCan==='function'&&cloudCan()&&typeof ACCT!=='undefined'&&!!(ACCT&&ACCT.name);   // 云端版：存档在云端，不用存档码、存档文件
-  return `<div class="page"><div class="hubhead"><h4 class="sub" style="margin-top:0">存档</h4><button class="small" data-a="tab" data-t="devlog">开发者说明</button></div>${fileMsg?`<div class="gmmsg">${esc(fileMsg)}</div>`:''}${typeof cloudSaveHTML==='function'?cloudSaveHTML():''}
+  return `<div class="page"><div class="hubhead"><h4 class="sub" style="margin-top:0">存档</h4><button class="small" data-a="tab" data-t="devlog">开发者说明</button></div>${typeof achHTML==='function'?'<div class="btns" style="margin:0 0 10px"><button class="opt primary achbtn" data-a="tab" data-t="ach">我的成就</button><button class="opt primary achbtn" data-a="tab" data-t="stats">我的数据</button></div>':''}${fileMsg?`<div class="gmmsg">${esc(fileMsg)}</div>`:''}${typeof cloudSaveHTML==='function'?cloudSaveHTML():''}
   ${cm?'':`<div class="qcard${ok?'':' warn'}"><p>${ok?'✓ 本浏览器可以自动保存。':'✗ 本浏览器现在无法保存进度（可能是无痕浏览模式），关掉页面进度就会丢。'}</p>
   <p class="note">最近一次自动保存：${t?`${t.getMonth()+1}月${t.getDate()}日 ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}（游戏内 ${dateTxt()}）`:'还没有'}
 当前网址：${esc(location.host||'本地文件')}
@@ -1023,7 +1027,7 @@ function saveHTML(){
 }
 function navHTML(){
   const t=[['play','行动'],['quest','目标'],['role','角色'],['ptn','道侣'],['emp','帝业'],['save','存档']];
-  return t.map(([k,l])=>`<button class="${tab===k||(k==='role'&&tab==='log')||(k==='save'&&tab==='devlog')?'on':''}" data-a="tab" data-t="${k}">${l}${k==='play'&&tab!=='play'&&queue.length?'<i class="dot"></i>':''}</button>`).join('');
+  return t.map(([k,l])=>`<button class="${tab===k||(k==='role'&&tab==='log')||(k==='save'&&(tab==='devlog'||tab==='ach'||tab==='stats'))?'on':''}" data-a="tab" data-t="${k}">${l}${k==='play'&&tab!=='play'&&queue.length?'<i class="dot"></i>':''}</button>`).join('');
 }
 function titleHTML(){
   if(!titleSub&&typeof cloudTitleHTML==='function'){const c=cloudTitleHTML();if(c)return c}
@@ -1084,6 +1088,7 @@ function _render(){
   if(!queue.length&&backTo&&S.phase==='act'&&!S.over){const d=backTo;backTo='';save();doAction(d)}else if(S.phase!=='act'||S.over)backTo='';
   renderStatus();
   const pages={quest:questHTML,role:roleHTML,ptn:ptnHTML,log:logHTML,devlog:devlogHTML,emp:empHTML,save:saveHTML};
+  if(typeof achHTML==='function'){pages.ach=achHTML;pages.stats=statsHTML}
   $('#main').innerHTML=tab==='play'?(S.over?overHTML():queue.length?sceneHTML(queue[0]):hubHTML()):pages[tab]();
   $('#nav').innerHTML=navHTML();
   if(!queue.length||S.over)save();

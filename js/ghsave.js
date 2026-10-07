@@ -48,12 +48,15 @@ async function cloudApi(op,extra){
   try{
     const a=await ghAuth(ACCT&&ACCT.name,ACCT&&ACCT.pin,op==='login'&&extra.create,op==='login');
     const slot=extra.slot|0;
-    if(op==='login')return {ok:true,slots:a.u.slots,created:a.created};
+    if(op==='login')return {ok:true,slots:a.u.slots,created:a.created,meta:a.u.meta||null};
     if(slot<0||slot>=CLOUD_SLOTS)return {ok:false,err:'input'};
     if(op==='load'){const d=await ghGet(ghSavePath(a.u,slot));return {ok:true,data:d,meta:a.u.slots[slot]}}
     if(op==='save'){const data=String(extra.data||'');if(data.length>900000)return {ok:false,err:'size'};
       const at=Date.now();await ghPut(ghSavePath(a.u,slot),data,'save');
-      a.u.slots[slot]={brief:String(extra.brief||'').slice(0,80),savedAt:at};await ghPut(a.path,JSON.stringify(a.u),'slots');
+      a.u.slots[slot]={brief:String(extra.brief||'').slice(0,80),savedAt:at};
+      /* 成就与数据：和云端已有的合并，每项取较大值 */
+      if(extra.meta)a.u.meta=typeof metaMerge==='function'?metaMerge(extra.meta,a.u.meta):extra.meta;
+     await ghPut(a.path,JSON.stringify(a.u),'slots');
       return {ok:true,savedAt:at}}
     if(op==='del'){await ghDel(ghSavePath(a.u,slot));a.u.slots[slot]=null;await ghPut(a.path,JSON.stringify(a.u),'del slot');return {ok:true,slots:a.u.slots}}
     return {ok:false,err:'input'};
