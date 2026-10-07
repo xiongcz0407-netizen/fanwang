@@ -1,4 +1,4 @@
-const APP_V=95;   // 打包时写入的版本号
+const APP_V=98;   // 打包时写入的版本号
 /* ================= 云端存档 =================
    用户名 + 6 位口令登录，每个用户 3 个存档位，存档放在 GitHub 私有仓库里（读写接口见 ghsave.js，它会替换下面的 cloudApi / cloudBeacon）。
    本机仍然保留一份当前存档（xw_save），断网时照常玩，联网后下次保存会自动补传。
@@ -98,13 +98,14 @@ async function checkUpdate(manual){
     if(v<=appV()){if(manual){verMsg='已经是最新版本。';render()}return}
     if(v!==newV){newV=v}
     if(safeToUpd()||(manual&&!queue.length)){
-      if(!updTried(v)){verMsg='发现新版本 '+verTxt(v)+'，正在更新……';render();doUpdate(v);return}
+      if(!updTried(v)){verMsg='发现新版本 '+verTxt(v)+'，正在更新……';render();doUpdate(v,manual);return}
       if(manual)verMsg='网站还在更新，过一两分钟再点一次。'}   // 刚试过还是旧的：免得一直刷新
     else if(manual)verMsg='发现新版本 '+verTxt(v)+'：先处理完眼前的事，再点上面的提示更新。';
     render()}catch(e){if(manual){verMsg='没连上网，过一会儿再试。';render()}}
 }
-async function doUpdate(v){
+async function doUpdate(v,manual){
   v=v||newV;const n=updTries(v)+1;
+  try{if(manual)sessionStorage.setItem('xw_updman','1');else sessionStorage.removeItem('xw_updman')}catch(e){}   // 玩家自己点的更新：更新后弹详细说明
   try{sessionStorage.setItem('xw_upd',JSON.stringify({v,at:Date.now(),n}))}catch(e){}
   if(cloudOn()&&S){clearTimeout(cloudTimer);try{save();await cloudPush(true)}catch(e){}}   // 先把进度存到云端
   if(n===1){await refreshHome();location.replace(appBase())}                                  // 首页缓存换新后，用原地址重新打开
@@ -172,7 +173,7 @@ document.addEventListener('click',e=>{
     if(!n.trim()||!/^\d{6}$/.test(p)){cloudMsg=cloudErrTxt('input');render();return}
     const nn=n.trim().slice(0,12);if(!ACCT||ACCT.name!==nn){SLOT=null;LS.del('xw_slot')}ACCT={name:nn,pin:p};cloudSlots=null;cloudLogin(false);return}
   if(a==='verChk'){checkUpdate(true);return}
-  if(a==='appUpd'){if(!safeToUpd()&&queue.length){updWarn=true;render();return}b.disabled=true;doUpdate();return}
+  if(a==='appUpd'){if(!safeToUpd()&&queue.length){updWarn=true;render();return}b.disabled=true;doUpdate(0,true);return}
   if(a==='cCreate'){const p2=($('#lpin2')||{}).value||'';if(p2!==ACCT.pin){cloudMsg='两次输入的口令不一样，请再输一次。';render();return}cloudLogin(true);return}
   if(a==='cBack'){cloudConfirm=null;cloudMsg='';if(!cloudSlots){cloudLastName=ACCT&&ACCT.name||'';ACCT=null;LS.del('xw_acct')}render();return}
   if(a==='cToCloud'){ACCT=null;cloudSlots=null;cloudMsg='';title=true;titleSub='';render();return}
@@ -191,3 +192,25 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a="toTitle
 document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const id=e.target&&e.target.id;
   if(id==='lname'){e.preventDefault();const p=$('#lpin');if(p)p.focus()}
   else if(id==='lpin'||id==='lpin2'){e.preventDefault();const b=document.querySelector(id==='lpin'?'[data-a="cLogin"]':'[data-a="cCreate"]');if(b&&!b.disabled)b.click()}});
+/* 更新后弹一次：玩家自己点的更新，列出上次打开以来开发者说明里新增的内容；自动更新的，只提示「已更新，去开发者说明看」（第一次玩的人不弹） */
+(function(){
+  if(typeof CHANGELOG==='undefined'||!appV())return;
+  const all=[];CHANGELOG.forEach(d=>d.items.forEach(t=>all.push(t)));
+  const seenV=LS.get('xw_seenv'),seen=LS.get('xw_seenlog');
+  const mark=()=>{LS.set('xw_seenv',appV());LS.set('xw_seenlog',all)};
+  let fresh;
+  if(seenV==null||!Array.isArray(seen)){
+    if(!(LS.get('xw_acct')||LS.get('xw_save'))){mark();return}     // 第一次玩：记下当前内容，不弹
+    fresh=CHANGELOG[0]?CHANGELOG[0].items.slice():[];              // 以前玩过、这是第一个带弹窗的版本：给看最近一天的
+  }else{if(appV()<=seenV)return;const has=new Set(seen);fresh=all.filter(t=>!has.has(t))}
+  mark();
+  let man=false;try{man=sessionStorage.getItem('xw_updman')==='1';sessionStorage.removeItem('xw_updman')}catch(e){}
+  if(man&&!fresh.length)return;
+  /* 玩家自己点了更新：列出这次更新的内容；自动更新的：只告诉一声，内容去开发者说明看 */
+  const body=man?`<ul>${fresh.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:`<p class="nmsg">游戏已经自动更新到最新版本。\n这次更新了什么，可以到「存档」页的「开发者说明」查看。</p>`;
+  const show=()=>{const d=document.createElement('div');d.id='newlay';
+    d.innerHTML=`<div class="nbox" role="dialog" aria-label="${man?'本次更新':'游戏已更新'}"><h3>${man?'本次更新':'游戏已更新'}<small>版本 ${verTxt(appV())}</small></h3>${body}<button class="opt primary" data-a="newClose">知道了</button></div>`;
+    document.body.appendChild(d)};
+  if(document.body)show();else document.addEventListener('DOMContentLoaded',show);
+})();
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a="newClose"]');if(b){const d=document.getElementById('newlay');if(d)d.remove()}});

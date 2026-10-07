@@ -10,7 +10,13 @@ document.addEventListener('click',e=>{
   if(a==='bribe'){const c=bribeCost();if(S.silver>=c){const d=Math.min(CFG.bribeDrop,S.suspicion);
     queue.unshift({who:me(),tag:'打点朝廷',title:'打点朝廷？',text:`这次要花银 ${c}${S.bribeMi===mi()?'（本月第二次起翻倍）':''}。\n银两 ${S.silver} → ${S.silver-c}\n猜忌 ${S.suspicion} → ${S.suspicion-d}`,
       options:[{label:'确定打点',run(){markPhase();if(S.silver<c)return;S.silver-=c;S.bribeMi=mi();S.suspicion=clamp(S.suspicion-CFG.bribeDrop,0,100);logAdd('打点朝廷');result('打点朝廷',`银子送进了京城几位大人的府上。\n（银两 −${c}，猜忌 −${d}）`)}},{label:'算了',run(){}}]})}render();return}
-  if(a==='endmonth'){endMonth();tab='play';render();return}
+  if(a==='endmonth'){
+    /* 后宅还有人本月没互动（道侣没双修/相处、结缘的还能相处）：先问一句 */
+    const left=queue.length?[]:S.partners.filter(p=>talkLeft(p)>0);
+    if(left.length){const ls=left.map(p=>`· ${p.name}${p.married?'（道侣，本月还没双修或相处）':`（本月还能相处 ${talkLeft(p)} 次）`}`).join('\n');
+      queue.unshift({who:me(),tag:'结束本月',title:'结束本月？',text:`后宅还有人这个月没去看：\n${ls}\n\n要直接进入下个月吗？`,
+        options:[{label:'去后宅',hint:'先去后宅看看',run(){doAction('后宅')}},{label:'进入下个月',hint:'这个月不去后宅了',run(){endMonth()}}]});tab='play';render();return}
+    endMonth();tab='play';render();return}
   if(a==='accept'){S.accept=!S.accept;render();return}
   if(a==='promoAsk'){if(S.rank<10&&promoReady(S.rank+1)&&mi()>=S.promoCD&&!queue.length){S.promoPause=false;startPromo(S.rank+1);tab='play'}render();return}
   if(a==='tab'){tab=b.dataset.t;render();return}

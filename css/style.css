@@ -269,3 +269,12 @@ details.help p{white-space:pre-line;margin:0 0 12px;line-height:1.7;font-size:15
 @keyframes lpulse{50%{box-shadow:0 0 0 4px rgba(166,116,26,.18)}}
 .updbar{display:block;width:100%;margin-top:6px;padding:5px 10px;border:1px solid var(--gold);border-radius:6px;background:rgba(166,116,26,.12);color:var(--gold);font-size:13px;text-align:center;cursor:pointer}
 .updbar.warn{border-color:var(--cinnabar);color:var(--cinnabar);background:rgba(176,57,45,.08)}
+/* 更新后弹窗 */
+#newlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+#newlay .nbox{background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:12px;max-width:380px;width:100%;max-height:80vh;display:flex;flex-direction:column;padding:16px 16px 14px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+#newlay h3{margin:0 0 10px;font-family:var(--title);font-weight:400;font-size:22px;display:flex;align-items:baseline;gap:10px}
+#newlay h3 small{font-family:inherit;font-size:13px;color:var(--muted)}
+#newlay ul{margin:0 0 14px;padding-left:1.2em;overflow-y:auto;font-size:14px;line-height:1.65}
+#newlay li{margin:0 0 6px}
+#newlay .opt{text-align:center;flex:none}
+#newlay .nmsg{margin:0 0 14px;font-size:15px;line-height:1.7;white-space:pre-line}
