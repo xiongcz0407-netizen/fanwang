@@ -518,21 +518,21 @@ function assassination(monthly){
 function prisonerScene(a,again){
   const ta=a.g==='f'?'她':'他';const full=S.partners.length>=CFG.knownMax;
   return {who:a,title:`处置刺客：${a.name}`,text:(again?`${a.name}再次被押在堂下，眼里全是恨意。`:`刺客${a.name}被押在堂下，一言不发。`)+`\n${assnLook(a)}`,options:[
-    {label:'审问后处决',hint:'拿到幕后主使的把柄：猜忌 −10；心魔 +12，对方结仇，以后的刺客更难对付（难度 +3）',run(){
+    {label:'审问后处决',hint:'猜忌 −10，心魔 +12；对方结仇，以后的刺客更难对付',run(){
       const m=pick1(['严崇府上','邻藩平阳王','京中某位宗室']);S.feud=(S.feud||0)+3;logAdd(`处决刺客，查出主使是${m}`);
       result('审问',`几番拷问，刺客吐露主使出自${m}。你把供词收好，人押了下去，再没出来。\n（${apply({suspicion:-10,xinmo:12},null,true)}，以后的刺客难度 +3）`)}},
     ...(again?[shameOpt(a)]:[
-    {label:'严刑逼供',hint:`把一切都榨出来：猜忌 −20，另外随机得到 赃银 / 修为心得 / 刺客组织的情报（下次刺杀要求 −10）之一；心魔 +${CFG.tortureXinmo}，对方结仇（难度 +3）；刺客会趁乱逃走，下个月起连续三个月来报复`,run(){
+    {label:'严刑逼供',hint:`猜忌 −20，另有一份随机收获；心魔 +${CFG.tortureXinmo}，对方结仇；刺客会逃走，之后连续三个月来报复`,run(){
       S.feud=(S.feud||0)+3;const k=pick1(['silver','xiu',...(S.intel?[]:['intel'])]);let e={suspicion:-20,xinmo:CFG.tortureXinmo},x='';
       if(k==='silver')e.silver=300;else if(k==='xiu')e.xiuwei=Math.round(CFG.retreatBase*3*lingMul());else{S.intel=1;x='，得到刺客组织的情报：下次刺杀要求 −10'}
       const sum=apply(e);logAdd(`严刑逼供刺客${a.name}`);S.revenge={name:a.name,g:a.g,img:a.img,type:a.type,cm:a.cm,next:mi()+1,left:CFG.revengeMonths};
       result('严刑逼供',`刑房里的灯亮了三天三夜。${a.name}最后什么都说了。\n第四天清晨，牢门大开，人不见了，墙上用血写着一个字：等。\n（${sum}${x}，以后的刺客难度 +3；${a.name}逃走了，下个月起会来报复）`)}}]),
-    {label:'收为己用',get hint(){return `${cmTxt(a)}，${a.type||'武'}类；`+'得到一名护卫：防刺客加成永久 +5，开启好感线；好感太低时可能反水行刺。结为道侣后双修收益更大，但羁绊没走完前会设法出逃'+(full?`；后宅已满 ${CFG.knownMax} 人，要先遣散一位没结亲的人`:'')},run(){
+    {label:'收为己用',get hint(){return `${cmTxt(a)}，${a.type||'武'}类；`+'防刺客永久 +5，可以培养好感；好感太低会反水，成亲后心结未解会设法出逃'+(full?`；后宅已满，要先遣散一位`:'')},run(){
       const p=makePartner(null,a);p.met=true;p.aff=10;p.cm=a.cm!=null?a.cm:rollCm(CFG.assassinCmHigh,CFG.assassinCmMid);a.cm=p.cm;
       const add=()=>{S.partners.push(p);S.bodyguard=Math.min(10,(S.bodyguard||0)+5);logAdd(`收服刺客${a.name}`);return `${a.name}沉默良久，终于跪下：「这条命，以后是殿下的。」\n（防刺客加成永久 +5，${a.name}好感 10）`};
       if(full){queue.unshift(replaceScene(p,`${a.name}愿意归顺。`,add,{label:'算了',hint:'不收服，回去重新处置',run(){queue.unshift(prisonerScene(a,again))}}));return}
       result('收服',add(),p)}},
-    {label:'释放',hint:`功德 +${Math.round(20*rankMul())}，心魔 −8；对方回去报信，猜忌 +8`,run(){ev('release');result('释放',`你命人解开绳索，放${a.name}离去。${ta}回头看了你一眼。\n（${apply({merit:20,xinmo:-8,suspicion:8})}）`)}}]};
+    {label:'释放',hint:`功德 +${Math.round(20*rankMul())}，心魔 −8，猜忌 +8`,run(){ev('release');result('释放',`你命人解开绳索，放${a.name}离去。${ta}回头看了你一眼。\n（${apply({merit:20,xinmo:-8,suspicion:8})}）`)}}]};
 }
 
 /* ================= 逼供后的报复 =================

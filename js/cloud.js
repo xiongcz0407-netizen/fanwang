@@ -1,4 +1,4 @@
-const APP_V=106;   // 打包时写入的版本号
+const APP_V=107;   // 打包时写入的版本号
 /* ================= 云端存档 =================
    用户名 + 6 位口令登录，每个用户 3 个存档位，存档放在 GitHub 私有仓库里（读写接口见 ghsave.js，它会替换下面的 cloudApi / cloudBeacon）。
    本机仍然保留一份当前存档（xw_save），断网时照常玩，联网后下次保存会自动补传。
@@ -211,6 +211,8 @@ document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const id=e.tar
     if(!(LS.get('xw_acct')||LS.get('xw_save'))){mark();return}     // 第一次玩：记下当前内容，不弹
     fresh=CHANGELOG[0]?CHANGELOG[0].items.slice():[];              // 以前玩过、这是第一个带弹窗的版本：给看最近一天的
   }else{if(appV()<=seenV)return;const has=new Set(seen);fresh=recent.filter(t=>!has.has(t))}
+  /* 只在更新弹窗里说的小改动（不写进开发者说明）：UPDATE_TIPS[版本号]，列出上次版本之后、到这次版本为止的 */
+  if(typeof UPDATE_TIPS!=='undefined'&&seenV!=null)Object.keys(UPDATE_TIPS).map(Number).filter(v=>v>seenV&&v<=appV()).sort((a,b)=>a-b).forEach(v=>UPDATE_TIPS[v].forEach(t=>{if(!fresh.includes(t))fresh.push(t)}));
   mark();
   let man=false;try{man=sessionStorage.getItem('xw_updman')==='1';sessionStorage.removeItem('xw_updman')}catch(e){}
   if(man&&!fresh.length)return;

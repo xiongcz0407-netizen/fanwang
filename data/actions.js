@@ -10,7 +10,7 @@ const ACTIONS={
   {id:'retreat',train:'gengu',label:'闭关修炼',text:'你闭门谢客，静坐运功。',
    eff:()=>S.xiuwei>=xiuNeed(S.realm)*CFG.xiuBank?{}:({xiuwei:Math.round(CFG.retreatBase*(1+S.attr.wuxing/50)*lingMul()*(1+0.1*(S.dongtian||0))*(S.hurt?0.5:1))}),tip:()=>'悟性越高修为越多；帝业越高灵脉越足'+(S.dongtian?'；有洞天福地加成':'')+'；负伤时减半'},
   {id:'pill',label:'炼制破障丹',text:'丹炉昼夜不熄，终于开炉取丹。',
-   noDim:true,cost:()=>({silver:Math.round(CFG.pillCost*[1,CFG.pillRepeat2,CFG.pillRepeat3][Math.min(actN('pill'),2)])}),eff:()=>({pill:pillYield()}),tip:()=>(pillYield()>=2?`悟性已到 ${CFG.pillWuxingStep}，一炉出 2 颗`:`悟性到 ${CFG.pillWuxingStep} 后一炉出 2 颗`)+'；突破小境界要用，境界越高要得越多，瓶颈要双倍，渡劫不用'},
+   noDim:true,cost:()=>({silver:Math.round(CFG.pillCost*[1,CFG.pillRepeat2,CFG.pillRepeat3][Math.min(actN('pill'),2)])}),eff:()=>({pill:pillYield()}),tip:()=>pillYield()>=2?'突破小境界要用，现在一炉出两颗':'突破小境界要用，悟性高了一炉出两颗'},
   {id:'study',train:'wuxing',trainMul:2,label:'参悟功法',text:'你把绢书上的口诀翻来覆去琢磨，渐渐摸到了一点门道。',
    eff:()=>({xiuwei:Math.round(CFG.studyXiuwei*lingMul())}),tip:'修为不多，主要用来提升悟性'}],
  治理:[
@@ -19,14 +19,14 @@ const ACTIONS={
   {id:'office',train:'wencai',label:'处理公务',text:'你把积压的公文批完，又理了一遍封地的账。',
    eff:()=>({wengong:20+Math.floor(S.attr.wencai/2)}),tip:'文才越高，文功越多'},
   {id:'industry',label:'发展产业',text:'你出资修了作坊和集市，商户们开始陆续进驻。',
-   cost:()=>({silver:Math.round(150*indPriceMul())}),eff:()=>({wengong:15,industry:15}),tip:()=>`产业收入永久有效；产业越多，再扩张越贵；现有产业每月 ${S.industry} 两`}],
+   cost:()=>({silver:Math.round(150*indPriceMul())}),eff:()=>({wengong:15,industry:15}),tip:()=>`现有 ${S.industry} 两；产业越多，再扩张越贵`}],
  军务:[
   {id:'drill',label:'操练私兵',text:'校场上喊杀声震天。',
    eff:()=>({train:5}),tip:'训练度越高，私兵越能打，剿匪、打仗、防刺客都有好处；不练会慢慢下降'},
   {id:'bandit',train:'wulue',label:'剿匪巡境',text:'你带兵把封地边界走了一圈，顺手端掉了一伙毛贼。',
    eff:()=>({wugong:Math.round((32+Math.floor(S.attr.wulue/2))*(1+S.train/200))}),tip:'武略越高、私兵训练度越高，武功越多'},
   {id:'guard',label:'加强府中守卫',text:'你在府中加设暗哨，换了一批可靠的护院。',
-   cost:()=>({silver:120}),eff:()=>({guard:Math.min(5,CFG.guardMax-S.guard)}),maxed:()=>S.guard>=CFG.guardMax,tip:()=>`最多 +${CFG.guardMax}，现在 +${S.guard}；每次刺杀 −${CFG.assassinGuardWear}，夜袭 −${CFG.raidGuardWear}；防夜袭需要总加成 ${raidReq()}，你现在 ${guardBonus()}`}],
+   cost:()=>({silver:120}),eff:()=>({guard:Math.min(5,CFG.guardMax-S.guard)}),maxed:()=>S.guard>=CFG.guardMax,tip:()=>`现在 +${S.guard}，最多 +${CFG.guardMax}；刺杀和夜袭都会折损守卫`}],
  游历:[
   {id:'xia',label:'行侠仗义',text:'你在乡间路见不平，顺手管了几桩闲事。',
    eff:()=>({merit:12,xinmo:-2}),tip:'渡劫要消耗功德；也是降心魔的主要办法'},
