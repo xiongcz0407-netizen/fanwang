@@ -8,15 +8,17 @@
 const META_V=1;
 let META=null,achNewQ=[];
 const metaKey=()=>'xw_meta_'+((typeof ACCT!=='undefined'&&ACCT&&ACCT.name)||'local');
-const metaBlank=()=>({v:META_V,st:{},best:{},end:{},ach:{},fast:null});
-function metaFix(m){m=m&&typeof m==='object'?m:{};const b=metaBlank();for(const k of ['st','best','end','ach'])if(!m[k]||typeof m[k]!=='object')m[k]=b[k];if(m.fast===undefined)m.fast=null;if(!m.v)m.v=META_V;return m}
+const metaBlank=()=>({v:META_V,rv:2,st:{},best:{},end:{},ach:{},fast:null});
+function metaFix(m){m=m&&typeof m==='object'?m:{};const b=metaBlank();for(const k of ['st','best','end','ach'])if(!m[k]||typeof m[k]!=='object')m[k]=b[k];if(m.fast===undefined)m.fast=null;if(!m.v)m.v=META_V;
+  /* 境界从 5 个大境界改成 8 个：旧数据里的最高境界按时间比例换算（rv=2 表示已换算） */
+  if(!m.rv){if(m.best.realm&&typeof realmFromOld==='function')m.best.realm=Math.round(realmFromOld(m.best.realm));m.rv=2}return m}
 /* 合并两份数据：数字取大，成就取并集（保留最早的达成时间），最快通关取年数少的，其余字段都保留 */
 function metaMerge(a,b){a=metaFix(JSON.parse(JSON.stringify(a||{})));b=metaFix(b?JSON.parse(JSON.stringify(b)):{});
   const o=Object.assign({},b,a);
   for(const k of ['st','best','end']){o[k]=Object.assign({},b[k],a[k]);for(const x in b[k])if(typeof b[k][x]==='number'&&typeof a[k][x]==='number')o[k][x]=Math.max(a[k][x],b[k][x])}
   o.ach=Object.assign({},b.ach,a.ach);for(const x in b.ach)if(a.ach[x]&&b.ach[x]&&(b.ach[x].at||0)<(a.ach[x].at||0))o.ach[x]=b.ach[x];
   o.fast=!a.fast?b.fast:!b.fast?a.fast:(b.fast.year<a.fast.year?b.fast:a.fast);
-  o.v=Math.max(a.v||1,b.v||1);return o}
+  o.v=Math.max(a.v||1,b.v||1);o.rv=2;return o}
 function achLoad(){try{META=metaFix(LS.get(metaKey()))}catch(e){META=metaBlank()}achEval(true)}
 const achSave=()=>{try{LS.set(metaKey(),META)}catch(e){}};
 /* 登录后把云端的数据合进来（cloud.js 调用） */
@@ -64,7 +66,7 @@ function achScan(){if(!S)return;const t=trk();
   if(S.rank>=10&&!t.emp){t.emp=1;if(S.route)stAdd('emp_'+S.route);if(t.susp>=90)bestMax('empSusp90',1)}}
 
 /* ---------- 成就规则（只看数据，所以随时可以重算） ---------- */
-const realmAt=m=>{for(let r=1;r<=27;r++)if(majorOf(r)>=m)return r;return 99};
+const realmAt=m=>{for(let r=1;r<=R_TOP;r++)if(majorOf(r)>=m)return r;return 99};
 const B=k=>META.best[k]||0,C=k=>META.st[k]||0;
 const ACH=[
   ['仙途',[
@@ -72,6 +74,9 @@ const ACH=[
     ['jindan','金丹大道','结成金丹',()=>B('realm')>=realmAt(2)],
     ['yuanying','元婴老怪','修到元婴',()=>B('realm')>=realmAt(3)],
     ['huashen','化神真君','修到化神',()=>B('realm')>=realmAt(4)],
+    ['lianxu','炼虚还真','修到炼虚',()=>B('realm')>=realmAt(5)],
+    ['heti','天人合一','修到合体',()=>B('realm')>=realmAt(6)],
+    ['dacheng','大乘圣尊','修到大乘',()=>B('realm')>=realmAt(7)],
     ['leiwei','一雷未伤','渡劫时三道天雷全部挡下',()=>B('tribPerfect')>=1],
     ['xinmo0','心如止水','心魔降到 0',()=>B('xinmoZero')>=1],
     ['danlu','丹炉不熄','一局里炼出 80 颗破障丹',()=>B('pillRun')>=80],
@@ -143,7 +148,7 @@ function statsHTML(back){back=back||ACH_BACK;if(!META)achLoad();const st=META.st
   const yrs=st.months||0;const fs=META.fast;
   return `<div class="page"><div class="hubhead"><h4 class="sub" style="margin-top:0">我的数据</h4><button class="small" ${back}>返回</button></div>
   <div class="sbig">${[['开过几局',g],['通关',w],['失败',f],['通关率',rate]].map(([l,v])=>`<div><b>${typeof v==='number'?fmt(v):v}</b><span>${l}</span></div>`).join('')}</div>
-  <p class="note ctr">累计游戏内 ${Math.floor(yrs/12)} 年${yrs%12?` ${yrs%12} 个月`:''}　·　累计赚到银两 ${c('silverEarn')}<br>最快通关 ${fs?`第 ${fs.year} 年`:'—'}　·　最高境界 ${be.realm?realmName(Math.min(be.realm,26)):'—'}　·　最高帝业 第 ${be.rank||1} 阶</p>
+  <p class="note ctr">累计游戏内 ${Math.floor(yrs/12)} 年${yrs%12?` ${yrs%12} 个月`:''}　·　累计赚到银两 ${c('silverEarn')}<br>最快通关 ${fs?`第 ${fs.year} 年`:'—'}　·　最高境界 ${be.realm?realmName(Math.min(be.realm,R_TOP)):'—'}　·　最高帝业 第 ${be.rank||1} 阶</p>
   <h4 class="sub">结局</h4><div class="ends">${END_LIST.map(k=>{const n=META.end[k]||0;return `<div class="erow"><span>${n?k:'？？？'}</span><i style="width:${n?`max(4px,${Math.round(n/mx*100)}%)`:0}"></i><b>${n}</b></div>`}).join('')}</div>
   ${card('仙途',[row('突破',c('breakthrough')),row('渡劫成功 / 失败',`${c('tribOk')} / ${c('tribFail')}`),row('炼出破障丹',c('pills')),row('闭关',c('act_retreat')),row('以功德悟道',c('mstudy'))])}
   ${card('帝业',[row('累计赚到的银两',c('silverEarn')),row('累计花掉的银两',c('silverSpend')),row('一局里最多同时有过的银两',fmt(be.silverMax||0)),row('最高月收入',fmt(be.incomeMax||0)),row('晋升',c('promo')),row('兵变线 / 民心线登基',`${c('emp_a')} / ${c('emp_b')}`),row('被问责',c('acc')),row('打点朝廷',c('bribe'))])}

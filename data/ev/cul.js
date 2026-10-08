@@ -1,23 +1,23 @@
 /* 修行事件。cat:'修行'；链式后续 cat:'chain'。
-   cond.realmMin/realmMax：练气1~10层=1~10，筑基初中后圆满=11~14，金丹=15~18，元婴=19~22，化神=23~26。 */
+   cond.realmMin/realmMax：练气1~9层=1~9，筑基初中后圆满=10~13，金丹=14~17，元婴=18~21，化神=22~25，炼虚=26~29，合体=30~33，大乘=34~37。 */
 const EV_CUL=[
-// ===== 练气（1~10） =====
-{id:'cul_001',cat:'修行',title:'丹田初暖',w:10,cond:{realmMin:1,realmMax:4},
+// ===== 练气（1~9） =====
+{id:'cul_001',cat:'修行',title:'丹田初暖',w:10,cond:{realmMin:1,realmMax:5},
  text:'晨起打坐，丹田里第一次有了一丝温热，像炉底一点火星。',
  opts:[
   {label:'泡药浴固本',check:{attr:'wuxing',lv:2},eff:{xinmo:-8,_t:'药力化开，心神也跟着静了下来。'}},
   {label:'心急催火，草草收功',eff:{xinmo:2,_t:'那点温热散了，起身时心里有些发躁。'}}]},
-{id:'cul_002',cat:'修行',title:'灵气走岔',w:10,cond:{realmMin:2,realmMax:6},
+{id:'cul_002',cat:'修行',title:'灵气走岔',w:10,cond:{realmMin:2,realmMax:7},
  text:'运功时，一股灵气走岔了经脉，胸口发闷，眼前一阵阵发黑。',
  opts:[
   {label:'强行导回正路',check:{attr:'gengu',lv:2},eff:{xiuwei:80,_t:'灵气归位，那条经脉反而通畅了许多。'}},
   {label:'硬扛着继续运功',eff:{injured:2,xinmo:3,_t:'一口血喷在蒲团上。'}}]},
-{id:'cul_003',cat:'修行',title:'坊市卖丹',w:10,cond:{realmMin:1,realmMax:6},
+{id:'cul_003',cat:'修行',title:'坊市卖丹',w:10,cond:{realmMin:1,realmMax:7},
  text:'州城坊市里有个散修摆摊卖丹，自称货是天衍宗外门流出来的。',
  opts:[
   {label:'当场验丹',check:{attr:'xinji',lv:2},eff:{silver:100,_t:'丹是假的，散修赔了你一笔银子才脱身。'}},
   {label:'听他吹嘘，掏钱买下',eff:{silver:-80,_t:'被他绕晕了，花大价钱买了一包糖丸。'}}]},
-{id:'cul_004',cat:'修行',title:'母妃的残页',w:10,cond:{realmMin:1,realmMax:8},
+{id:'cul_004',cat:'修行',title:'母妃的残页',w:10,cond:{realmMin:1,realmMax:10},
  text:'王府旧书箱的夹层里，翻出几页残破的功法，字迹是母妃的。',
  opts:[
   {label:'对着残页静坐思亲',check:{attr:'wencai',lv:1},eff:{next:'cul_c01',xinmo:-5,_t:'你读懂了字里行间的牵挂，在书房坐了一夜，心里一片安宁。'}},
@@ -27,28 +27,28 @@ const EV_CUL=[
  opts:[
   {label:'派心腹去取',check:{attr:'xinji',lv:1},cost:{silver:150},eff:{xiuwei:180,_t:'心腹带回一卷完整的心法。'}},
   {label:'冒雨贸然进山',eff:{injured:2,_t:'山路塌方，你空手而回。'}}]},
-{id:'cul_005',cat:'修行',title:'北山灵泉',w:10,cond:{realmMin:3,realmMax:10},
+{id:'cul_005',cat:'修行',title:'北山灵泉',w:10,cond:{realmMin:3,realmMax:13},
  text:'封地北山冒出一眼泉水，终年白气蒸腾，泉边的草冬天也不枯。',
  opts:[
   {label:'引泉入城，给百姓治病',check:{attr:'wencai',lv:1},cost:{silver:70},eff:{merit:24,_t:'泉水治好了不少老寒腿。'}},
   {label:'圈作王府禁地',eff:{minxin:-3,xinmo:2,_t:'百姓不能再去取水，怨言传进了王府，你坐在泉边也静不下心。'}}]},
-{id:'cul_006',cat:'修行',title:'冲关吐血',w:10,cond:{realmMin:6,realmMax:10},
+{id:'cul_006',cat:'修行',title:'冲关吐血',w:10,cond:{realmMin:6,realmMax:9},
  text:'冲击练气后期的关窍时，真气乱窜，你一口血吐在了地上。',
  opts:[
   {label:'默诵心法，导气归元',check:{attr:'wuxing',lv:2},eff:{xinmo:-4,_t:'乱窜的真气一点点归了位，心也稳了。'}},
   {label:'强撑着不肯收功',eff:{injured:2,xinmo:4,_t:'没冲开，经脉伤得不轻。'}}]},
-// ===== 筑基（11~14） =====
-{id:'cul_007',cat:'修行',title:'地下灵脉',w:10,cond:{realmMin:11,realmMax:14},
+// ===== 筑基～金丹（10~17） =====
+{id:'cul_007',cat:'修行',title:'地下灵脉',w:10,cond:{realmMin:10,realmMax:13},
  text:'筑基之后，你第一次「看」见，王府地下伏着一道细细的灵脉。',
  opts:[
   {label:'掘地聚灵',check:{attr:'gengu',lv:1},cost:{silver:200},eff:{xiuwei:220,_t:'灵气涌出，后院的花一夜全开了。'}},
   {label:'照着古书胡乱布阵',eff:{silver:-100,xinmo:3,_t:'阵法布错了，灵脉缩回了地底。'}}]},
-{id:'cul_008',cat:'修行',title:'血衣兄长',w:10,cond:{realmMin:11,realmMax:16},
+{id:'cul_008',cat:'修行',title:'血衣兄长',w:10,cond:{realmMin:14,realmMax:19},
  text:'打坐时，你看见太子大哥站在面前，满身是血，问你为何还不替他报仇。',
  opts:[
   {label:'直面心魔',check:{attr:'wuxing',lv:3},eff:{xinmo:-8,_t:'你说：大哥，我会的，但不是现在。幻影散了。'}},
   {label:'起身去后宅躲一躲',eff:{xinmo:4,_t:'后宅热闹了一晚，那张脸却还在心里，你夜夜惊醒。'}}]},
-{id:'cul_009',cat:'修行',title:'头一炉丹',w:10,cond:{realmMin:11,realmMax:16},
+{id:'cul_009',cat:'修行',title:'头一炉丹',w:10,cond:{realmMin:14,realmMax:19},
  text:'你第一次开炉炼丹，炉里冒出滚滚黑烟，一炉药材全废了。',
  opts:[
   {label:'剖开废丹琢磨火候',check:{attr:'wuxing',lv:2},eff:{xiuwei:80,next:'cul_c02',_t:'你从废丹的纹路里，看出了火候的门道。'}},
@@ -58,59 +58,59 @@ const EV_CUL=[
  opts:[
   {label:'细算药本，定价发卖',check:{attr:'wencai',lv:1},eff:{silver:250,_t:'你把药材、火耗一笔笔算清，标了个公道价，丹很快卖空，散修们都说朔州王的丹靠得住。'}},
   {label:'趁热再开一炉',eff:{silver:-100,injured:1,_t:'你心急又开一炉，炉子炸了，前一炉的丹也震碎了。'}}]},
-{id:'cul_010',cat:'修行',title:'天衍宗请帖',w:10,cond:{realmMin:11,realmMax:18},
+{id:'cul_010',cat:'修行',title:'天衍宗请帖',w:10,cond:{realmMin:14,realmMax:21},
  text:'天衍宗派人送来请帖，邀你上山观礼。信里话里有话，要你表个态。',
  opts:[
   {label:'赴约，当众表忠心',check:{attr:'meili',lv:2},eff:{suspicion:-6,_t:'你说了不少场面话，宗主很满意。'}},
   {label:'托病不去',eff:{suspicion:5,xinmo:2,_t:'天衍宗在京里放话，说朔州王目中无人。'}}]},
-{id:'cul_011',cat:'修行',title:'跛脚老道',w:10,cond:{realmMin:12,realmMax:16},
+{id:'cul_011',cat:'修行',title:'跛脚老道',w:10,cond:{realmMin:15,realmMax:19},
  text:'一个跛脚老道找上门，说是青霄宗最后的长老，要看看故人之子的根骨。',
  opts:[
   {label:'奉为王府供奉',check:{attr:'meili',lv:1},cost:{silver:90},eff:{xinmo:-10,guard:6,_t:'老道住了下来，夜里常在屋顶上喝酒守夜。'}},
   {label:'疑他是骗子，打发走',eff:{xinmo:3,merit:-5,_t:'老道一瘸一拐地走了。后来你才听说，他确是青霄宗的长老。'}}]},
-{id:'cul_012',cat:'修行',title:'崖洞雕卵',w:10,cond:{realmMin:13,realmMax:18},
+{id:'cul_012',cat:'修行',title:'崖洞雕卵',w:10,cond:{realmMin:16,realmMax:21},
  text:'后山崖洞里有一枚温热的卵，旁边躺着一头已经死去的雪雕。',
  opts:[
   {label:'揣在怀里，日夜焐着',check:{attr:'gengu',lv:1},eff:{xinmo:-8,_t:'你贴身焐了它四十多天，雏雕破壳后认了你，常蹲在你肩头打盹。'}},
   {label:'取卵入药',eff:{merit:-8,xinmo:3,_t:'丹没炼成，卵也废了。你没敢再去那个崖洞。'}}]},
-// ===== 金丹（15~18） =====
-{id:'cul_013',cat:'修行',title:'结丹异象',w:10,cond:{realmMin:15,realmMax:16},
+// ===== 金丹～元婴（14~21） =====
+{id:'cul_013',cat:'修行',title:'结丹异象',w:10,cond:{realmMin:14,realmMax:15},
  text:'金丹初成，王府上空聚起一片紫云，久久不散，满城百姓都看见了。',
  opts:[
   {label:'亲撰文告，昭示祥瑞',check:{attr:'wencai',lv:2},eff:{minxin:6,_t:'文告引经据典、写得堂堂正正，百姓信了，都说朔州出了真人。'}},
   {label:'任由流言四起',eff:{suspicion:10,_t:'监军上奏说朔州有「天子气」。'}}]},
-{id:'cul_014',cat:'修行',title:'丹火反噬',w:10,cond:{realmMin:15,realmMax:20},
+{id:'cul_014',cat:'修行',title:'丹火反噬',w:10,cond:{realmMin:18,realmMax:25},
  text:'你以丹火炼药，火势忽然失控，顺着手臂往上烧。',
  opts:[
   {label:'请紫霞门丹师出手',check:{attr:'meili',lv:1},cost:{silver:200},eff:{xiuwei:200,_t:'丹师顺手指点了你几句控火的法门。'}},
   {label:'慌忙拿水去浇',eff:{injured:3,_t:'整条手臂烧伤，几个月抬不起来。'}}]},
-{id:'cul_015',cat:'修行',title:'崖壁剑经',w:10,cond:{realmMin:15,realmMax:20},
+{id:'cul_015',cat:'修行',title:'崖壁剑经',w:10,cond:{realmMin:18,realmMax:25},
  text:'樵夫说崖壁上有字，越看越头疼。你去看了，是一部上古剑经。',
  opts:[
   {label:'拓印后封洞',check:{attr:'wencai',lv:1},eff:{xinmo:-8,_t:'拓本收进了书房。不贪，心里反倒安稳。'}},
   {label:'盯着崖壁硬看',eff:{xinmo:5,injured:1,_t:'剑意太利，反伤了神识。'}}]},
-{id:'cul_016',cat:'修行',title:'冰原雪莲',w:10,cond:{realmMin:15,realmMax:20},
+{id:'cul_016',cat:'修行',title:'冰原雪莲',w:10,cond:{realmMin:18,realmMax:25},
  text:'极北冰原上，有人看见千年雪莲开了。几路散修都在往那边赶。',
  opts:[
   {label:'抢先夺莲',check:{attr:'wulue',lv:2},eff:{xinmo:-5,_t:'你抢到了雪莲，入口清寒，连日来的心火都压了下去。'}},
   {label:'混在人群里伺机下手',eff:{injured:2,_t:'散修们联手，把你打下了冰崖。'}}]},
-{id:'cul_017',cat:'修行',title:'被逐的弟子',w:10,cond:{realmMin:16,realmMax:20},
+{id:'cul_017',cat:'修行',title:'被逐的弟子',w:10,cond:{realmMin:19,realmMax:25},
  text:'紫霞门一个年轻弟子被同门陷害，逐出师门，一路逃到朔州求你收留。',
  opts:[
   {label:'替他回山门讨公道',check:{attr:'meili',lv:3},eff:{merit:15,xinmo:-3,_t:'真相大白，紫霞门登门致谢，你心里也痛快。'}},
   {label:'大张旗鼓地收留',eff:{suspicion:5,xinmo:2,_t:'你收留宗门叛徒的事传遍了修行界，紫霞门也记恨上了你。'}}]},
-// ===== 元婴（19~22） =====
-{id:'cul_018',cat:'修行',title:'神游玉京',w:10,cond:{realmMin:19,realmMax:22},
+// ===== 元婴～炼虚（18~29） =====
+{id:'cul_018',cat:'修行',title:'神游玉京',w:10,cond:{realmMin:18,realmMax:21},
  text:'元婴初成，你第一次神游出体，远远看见了千里之外的玉京。',
  opts:[
   {label:'神游入宫',check:{attr:'xinji',lv:3},eff:{xinmo:-6,suspicion:-5,_t:'你看见皇兄深夜独坐，鬓边已白。原来他也睡不着。'}},
   {label:'在玉京上空流连不去',eff:{injured:2,xinmo:4,_t:'宫中有护阵，元婴被灼伤。'}}]},
-{id:'cul_019',cat:'修行',title:'灵脉枯竭',w:10,cond:{realmMin:19,realmMax:24},
+{id:'cul_019',cat:'修行',title:'灵脉枯竭',w:10,cond:{realmMin:22,realmMax:33},
  text:'朔州地下的灵脉越来越细。你修为越高，吸得越快，北山的灵泉已经干了。',
  opts:[
   {label:'远赴他州引脉',check:{attr:'xinji',lv:2},cost:{silver:300},eff:{xiuwei:300,_t:'你从邻州悄悄借来一道支脉，朝廷没有察觉。'}},
   {label:'照旧闭关猛吸',eff:{minxin:-4,xinmo:3,_t:'灵脉断了，北山一带的庄稼跟着歉收，百姓说是王府吸干了地气。'}}]},
-{id:'cul_020',cat:'修行',title:'老魔残魂',w:10,cond:{realmMin:19,realmMax:24},
+{id:'cul_020',cat:'修行',title:'老魔残魂',w:10,cond:{realmMin:22,realmMax:33},
  text:'一缕老魔残魂缠上了你，许你三百年修为，换你一具肉身。',
  opts:[
   {label:'将计就计，炼化残魂',check:{attr:'wuxing',lv:3},eff:{xiuwei:250,next:'cul_c03',_t:'残魂被你炼化，它临散前吐露了一个洞府的位置。'}},
@@ -120,29 +120,29 @@ const EV_CUL=[
  opts:[
   {label:'持剑劈开禁制',check:{attr:'wulue',lv:3},eff:{xiuwei:150,silver:300,_t:'你一剑一剑劈开禁制。洞里有灵石，有老魔的修炼心得，还有一具枯骨。'}},
   {label:'莽撞闯进洞去',eff:{injured:2,xinmo:5,_t:'禁制里藏着老魔最后一道恶念。'}}]},
-{id:'cul_021',cat:'修行',title:'天劫余雷',w:10,cond:{realmMin:20,realmMax:24},
+{id:'cul_021',cat:'修行',title:'天劫余雷',w:10,cond:{realmMin:24,realmMax:33},
  text:'一位元婴老祖渡劫失败，残雷落在朔州的荒原上，雷击木烧了一片。',
  opts:[
   {label:'借残雷淬体',check:{attr:'gengu',lv:3},eff:{xiuwei:200,_t:'雷光过体，骨头里噼啪作响，修为跟着涨了一截。'}},
   {label:'赤手去捡雷击木',eff:{injured:2,_t:'残雷未散，你被劈得昏迷了好几天。'}}]},
-// ===== 化神（23~26） =====
-{id:'cul_022',cat:'修行',title:'空殿龙袍',w:10,cond:{realmMin:23,realmMax:26},
+// ===== 合体～大乘（30~37） =====
+{id:'cul_022',cat:'修行',title:'空殿龙袍',w:10,cond:{realmMin:30,realmMax:37},
  text:'近来你每夜都梦见自己穿着龙袍，坐在一座空荡荡的大殿上。',
  opts:[
   {label:'不想，只管修炼',check:{attr:'gengu',lv:2},eff:{xiuwei:250,_t:'修为一日千里，梦也渐渐淡了。'}},
   {label:'翻来覆去地想',eff:{xinmo:8,_t:'越想越乱，大殿越来越空。'}}]},
-{id:'cul_023',cat:'修行',title:'天下灵脉图',w:10,cond:{realmMin:23,realmMax:26},
+{id:'cul_023',cat:'修行',title:'天下灵脉图',w:10,cond:{realmMin:30,realmMax:37},
  text:'天衍宗掌门私下送来一卷天下灵脉图，条件是你登基后封天衍宗为国教。',
  opts:[
   {label:'收下图，不应承',check:{attr:'xinji',lv:3},eff:{silver:300,suspicion:-5,_t:'你虚与委蛇，图留下了，掌门还搭了一箱灵石，却抓不到你半点把柄。'}},
   {label:'当面回绝',eff:{suspicion:10,xinmo:3,_t:'掌门拂袖而去，转头就去了京城。'}}]},
-{id:'cul_024',cat:'修行',title:'飞升之兆',w:10,cond:{realmMin:24,realmMax:26},
+{id:'cul_024',cat:'修行',title:'飞升之兆',w:10,cond:{realmMin:34,realmMax:37},
  text:'你察觉到天地间有一扇门，正一点点为你打开。可帝业还没有完成。',
  opts:[
   {label:'顺势感悟',check:{attr:'wuxing',lv:3},eff:{xiuwei:300,_t:'你看见了门后的光，也看清了门外未了的事。'}},
   {label:'进退两难，心神摇摆',eff:{xinmo:6,xiuwei:-100,_t:'你一会儿想推门，一会儿想回头，门在你面前忽开忽合。'}}]},
 // ===== 大事件 =====
-{id:'cul_m01',cat:'修行',major:1,title:'宗门大比',w:10,cond:{realmMin:11,realmMax:18},once:1,
+{id:'cul_m01',cat:'修行',major:1,title:'宗门大比',w:10,cond:{realmMin:14,realmMax:21},once:1,
  intro:'天衍宗主持的宗门大比又开了。青霄宗的名册上，如今只剩你一个人的名字。',
  steps:[
   {text:'报名处的执事翻着名册冷笑：青霄宗早就除名了，罪藩也配来比？',opts:[
@@ -155,7 +155,7 @@ const EV_CUL=[
    {label:'将计就计，当众揭发',check:{attr:'xinji',lv:3},eff:{merit:20,_t:'丹里有毒，背后是天衍宗长老。宗门颜面扫地，各派都承了你的情。'}},
    {label:'半信半疑地服下',eff:{injured:2,xinmo:3,_t:'丹里掺了东西，决赛上你真气一滞，输了一招。'}}]}],
  outro:'大比散场，青霄宗这三个字，又被人提起了。'},
-{id:'cul_m02',cat:'修行',major:1,title:'上古秘境',w:10,cond:{realmMin:15,realmMax:22},once:1,
+{id:'cul_m02',cat:'修行',major:1,title:'上古秘境',w:10,cond:{realmMin:18,realmMax:29},once:1,
  intro:'极北冰原裂开一道口子，一座上古秘境现世。各大宗门和散修蜂拥而至，你也去了。',
  steps:[
   {text:'秘境入口有一层禁制，进去的人有一半被弹了回来。',opts:[
@@ -168,7 +168,7 @@ const EV_CUL=[
    {label:'以阵法撑住出口',check:{attr:'wuxing',lv:3},eff:{xiuwei:150,xinmo:-4,_t:'你撑住出口，让所有人都逃了出来。崩塌的余波，也被你借来炼了一回真元。'}},
    {label:'拿走他的储物袋，先走',eff:{xinmo:8,merit:-10,_t:'身后传来一声闷响。储物袋很沉，心更沉。'}}]}],
  outro:'冰原的裂口合上了，像从没打开过。'},
-{id:'cul_m03',cat:'修行',major:1,title:'灵脉之争',w:10,cond:{rankMin:3,realmMin:15,realmMax:24},once:1,
+{id:'cul_m03',cat:'修行',major:1,title:'灵脉之争',w:10,cond:{rankMin:3,realmMin:18,realmMax:33},once:1,
  intro:'朔州与平阳王封地交界处，发现了一条大灵脉。平阳王请来紫霞门，天衍宗也派了人。',
  steps:[
   {text:'三方都还在观望，灵脉所在的山谷里只有几个探路的修士。',opts:[
@@ -181,7 +181,7 @@ const EV_CUL=[
    {label:'破阵，炼化邪物',check:{attr:'gengu',lv:3},eff:{xiuwei:250,_t:'邪物化作修为，你守住了心神，没让它留下一点黑。'}},
    {label:'不管不顾继续往下挖',eff:{xinmo:6,injured:2,_t:'邪气反噬，你闭关了半年才压住。'}}]}],
  outro:'山谷里的灵气，从此往朔州的方向流。'},
-{id:'cul_m04',cat:'修行',major:1,title:'心魔劫',w:10,cond:{realmMin:22,realmMax:26},once:1,
+{id:'cul_m04',cat:'修行',major:1,title:'心魔劫',w:10,cond:{realmMin:21,realmMax:25},once:1,
  intro:'化神之前，必渡心魔劫。你闭关的第三个月，四面八方都站满了故人。',
  steps:[
   {text:'太子大哥坐在你对面，像小时候一样替你斟茶：「七弟，你还记得我说的话吗？」',opts:[

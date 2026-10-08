@@ -9,7 +9,7 @@ let S=LS.get('xw_save'); let oldSave=false; if(S&&S.v!==SAVE_V){S=null;oldSave=t
 const _rnd=Math.random;
 Math.random=function(){if(typeof S!=='undefined'&&S&&typeof S.rs==='number'){let x=S.rs|0;x^=x<<13;x^=x>>>17;x^=x<<5;S.rs=x|0||1;return (x>>>0)/4294967296}return _rnd()};
 if(S&&typeof S.rs!=='number')S.rs=Math.floor(_rnd()*2147483646)+1;
-function migrate(o){if(!o||o.v!==SAVE_V)return null;o.exp=o.exp||{};if(typeof o.rs!=='number')o.rs=(Math.floor(_rnd()*2147483646)+1);(o.partners||[]).forEach(p=>{if(!p.img)p.img=pickImg(p.g,o)});return o}
+function migrate(o){if(!o||o.v!==SAVE_V)return null;upgradeRealm(o);o.exp=o.exp||{};if(typeof o.rs!=='number')o.rs=(Math.floor(_rnd()*2147483646)+1);(o.partners||[]).forEach(p=>{if(!p.img)p.img=pickImg(p.g,o);if(p.prefs&&p.prefs.length>1)p.prefs=p.prefs.slice(0,1);delete p.taboo});return o}
 let backTo='', queue=[], view='game', tab='play', title=true, titleSub='', titleMsg='', gmResetArm=false, restartArm=false, fileMsg='';
 function download(name,obj){const b=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 function loadFile(input){const f=input.files[0];if(!f)return;const kind=input.dataset.file;const r=new FileReader();
@@ -64,33 +64,44 @@ const cmTxt=p=>`才貌 ${p.cm==null?(p.cm=rollCm()):p.cm}（当前门第标准 $
 /* 新遇到的人：10% 高很多、40% 略高、50% 一样或更低；你的魅力比事件基准每高 1 点，好的两档各 +0.5%（各最多 +10%） */
 function rollCm(h0,m0){h0=h0==null?10:h0;m0=m0==null?40:m0;const b=clamp(((S.attr&&S.attr.meili)||0)-reqBase(),-20,20)*0.5;const pH=clamp(h0+b,h0/2,h0*2),pM=clamp(m0+b,m0-10,m0+10);const r=Math.random()*100,st=cmStd();
   const v=r<pH?st+20+rand(11):r<pH+pM?st+5+rand(11):st-20+rand(25);return clamp(v,1,100)}
-/* ---- 境界：1~10 练气，11~14 筑基，15~18 金丹，19~22 元婴，23~26 化神，27 飞升 ---- */
-const MAJOR=['练气','筑基','金丹','元婴','化神'];
-const majorOf=i=>i<=10?0:Math.min(4,Math.floor((i-11)/4)+1);
+/* ---- 境界：1~9 练气，10~13 筑基，14~17 金丹，18~21 元婴，22~25 化神，26~29 炼虚，30~33 合体，34~37 大乘，38 飞升 ---- */
+const MAJOR=['练气','筑基','金丹','元婴','化神','炼虚','合体','大乘'];
+const QI_N=9,R_TOP=37,R_FEI=38;      // 练气层数、最高小境界（大乘圆满）、飞升
+const majorOf=i=>i<=QI_N?0:Math.min(MAJOR.length-1,Math.floor((i-QI_N-1)/4)+1);
 const STAGE=['初期','中期','后期','圆满'];
-const realmName=i=>i>=27?'飞升':i<=10?`练气${CN[i]}层`:MAJOR[majorOf(i)]+STAGE[(i-11)%4];
-const xiuNeed=i=>XIU_NEED[Math.min(i,26)];
-/* 大境界之间要渡劫（10→筑基，14→金丹，18→元婴，22→化神，26→飞升） */
-const TRIB_AT={10:'zhuji',14:'jindan',18:'yuanying',22:'huashen',26:'feisheng'};
-const TRIB_RANK={zhuji:3,jindan:6,yuanying:9,huashen:10,feisheng:10};
-const TRIB_MERIT={zhuji:'meritZhu',jindan:'meritJin',yuanying:'meritYuan',huashen:'meritHua',feisheng:'meritFei'};
-const TRIB_MAJOR={zhuji:0,jindan:1,yuanying:2,huashen:3,feisheng:4};
-const isBottle=i=>[3,6,9,12,16,20,24].includes(i);
-/* 突破需要的破障丹：练气三层起每次都要，按大境界 1/2/3/4/5 颗，瓶颈双倍；跨大境界走渡劫，不用丹 */
-const PILL_PER_MAJOR=[1,2,3,4,5];
+const realmName=i=>i>=R_FEI?'飞升':i<=QI_N?`练气${CN[i]}层`:MAJOR[majorOf(i)]+STAGE[(i-QI_N-1)%4];
+const xiuNeed=i=>XIU_NEED[Math.min(i,R_TOP)];
+/* 每个大境界的最后一段要渡劫，才能进下一个大境界（大乘圆满之后是飞升） */
+const TRIB_AT={9:'zhuji',13:'jindan',17:'yuanying',21:'huashen',25:'lianxu',29:'heti',33:'dacheng',37:'feisheng'};
+const TRIB_RANK={zhuji:2,jindan:3,yuanying:6,huashen:9,lianxu:9,heti:10,dacheng:10,feisheng:10};
+const TRIB_MERIT={zhuji:'meritZhu',jindan:'meritJin',yuanying:'meritYuan',huashen:'meritHua',lianxu:'meritLian',heti:'meritHe',dacheng:'meritDa',feisheng:'meritFei'};
+const isBottle=i=>[6,11,15,19,23,27,31,35].includes(i);
+/* 突破需要的破障丹：练气三层起每次都要，按大境界给不同颗数，瓶颈双倍；跨大境界走渡劫，不用丹 */
+const PILL_PER_MAJOR=[1,1,2,3,2,2,2,3];
 const pillNeed=i=>i<3||TRIB_AT[i]?0:PILL_PER_MAJOR[majorOf(i)]*(isBottle(i)?2:1);
-const carryXiu=oldNeed=>Math.min(Math.max(0,S.xiuwei-oldNeed),Math.round(xiuNeed(Math.min(S.realm,26))*0.5));
+const carryXiu=oldNeed=>Math.min(Math.max(0,S.xiuwei-oldNeed),Math.round(xiuNeed(Math.min(S.realm,R_TOP))*0.5));
 const pillYield=()=>Math.min(2,1+Math.floor(S.attr.wuxing/CFG.pillWuxingStep));
-const realmMul=()=>REALM_MUL[majorOf(Math.min(S.realm,26))];
+const realmMul=()=>REALM_MUL[majorOf(Math.min(S.realm,R_TOP))];
 const rankMul=(r)=>1+CFG.rankScale*((r||S.rank)-1);
 const diffMul=()=>1+CFG.diffPerRank*(S.rank-1);
 /* 帝业 → 修仙：封地灵脉、国库天材地宝，帝业越高，修行越快 */
 const lingMul=()=>1+CFG.lingPerRank*(S.rank-1);
-const attrCap=()=>[CFG.capQi,CFG.capZhu,CFG.capJin,CFG.capYuan,CFG.capHua][majorOf(Math.min(S.realm,26))];
+const attrCap=()=>[CFG.capQi,CFG.capZhu,CFG.capJin,CFG.capYuan,CFG.capHua,CFG.capLian,CFG.capHe,CFG.capDa][majorOf(Math.min(S.realm,R_TOP))];
 const meritNeed=k=>Math.round(CFG[TRIB_MERIT[k]]);
-/* 修仙 → 帝业：帝业带来权欲心魔，境界提供定力抵消 */
+/* 修仙 → 帝业：帝业带来权欲心魔，境界提供定力抵消（按大境界，后期每两个大境界加一档） */
 const xinmoRankGain=()=>S.rank>=10?CFG.xinmoRank10:S.rank>=7?CFG.xinmoRank7:S.rank>=4?CFG.xinmoRank4:0;
-const xinmoResist=()=>majorOf(Math.min(S.realm,26))*CFG.xinmoResistPerMajor;
+const RESIST_LV=[0,0,1,2,3,3,4,4];
+const xinmoResist=()=>RESIST_LV[majorOf(Math.min(S.realm,R_TOP))]*CFG.xinmoResistPerMajor;
+/* 旧版（5 个大境界、1~27）存档换算到新版：按修行进度的时间比例对齐（和阶段目标的时间一致） */
+const R_MAP=[[1,1],[3,3],[11,14],[15,18],[19,22],[23,30],[27,38]];
+const realmFromOld=o=>{for(let k=1;k<R_MAP.length;k++){const [b,a]=R_MAP[k-1],[d,c]=R_MAP[k];if(o<=d)return a+(c-a)*(o-b)/(d-b)}return R_FEI};
+function upgradeRealm(o){if(!o||o.rv>=2)return o;o.rv=2;
+  const r=o.realm||1;if(r>=27){o.realm=R_FEI;return o}
+  const OLD=[0,200,400,600,800,1000,1200,1400,1600,1800,2000,4000,6490,10000,15000,39000,65000,104000,130000,239000,359000,538000,777000,748000,1092000,1482000,2028000];
+  const f=Math.max(0,Math.min(1,(o.xiuwei||0)/(OLD[r]||1)));const x=realmFromOld(r+f);   // 旧境界里走到的位置（带小数）换到新境界
+  let nr=Math.floor(x);if(nr<1)nr=1;if(nr>R_TOP)nr=R_TOP;o.realm=nr;o.xiuwei=Math.round((x-nr)*XIU_NEED[nr]);
+  (o.partners||[]).forEach(p=>{if(p.realm)p.realm=Math.max(1,Math.min(R_TOP,Math.round(realmFromOld(p.realm))))});
+  return o}
 /* ---- 兵力 ---- */
 const power=()=>Math.round(S.troops*(1+S.train/100));
 const ratio=()=>Math.round(power()/Math.max(1,S.court)*1000)/10;
@@ -118,7 +129,7 @@ const saveCode=o=>{const t=JSON.stringify(o||S);return typeof LZString!=='undefi
 function parseCode(code){code=String(code||'').replace(/\s+/g,'');if(!code)return null;
   try{const m=/^XW\d+-(.+)$/.exec(code);const o=JSON.parse(m?LZString.decompressFromEncodedURIComponent(m[1]):decodeURIComponent(escape(atob(code))));return o&&o.v===SAVE_V?o:null}catch(e){return null}}
 function loadCode(code){const o=parseCode(code);if(!o)return false;S=migrate(o);queue=[];save();return true}
-const saveBrief=o=>`${o.name}　第${o.year}年${MONTHS[o.month]}　${realmName(Math.min(o.realm,26))}`;
+const saveBrief=o=>`${o.name}　第${o.year}年${MONTHS[o.month]}　${realmName(Math.min(o.realm||1,R_TOP))}`;
 /* 每年正月提醒备份存档码（上次复制满 12 个月才提醒） */
 function backupScene(){if(typeof cloudOn==='function'&&cloudOn()){S.copyMi=mi();save();return {who:me(),tag:'存档',title:'新的一年',text:cloudLast.ok===false?`新的一年开始了。游戏已保存在这台设备上，但上次没能存到云端（${cloudErrTxt(cloudLast.err).replace(/。$/,'')}）。联网后会自动补上。`:'新的一年开始了，游戏已自动保存到云端。',options:[{label:'继续',run(){}}]}}
   return {who:me(),tag:'存档提醒',title:'备份存档码',text:`新的一年开始了。这局游戏很长，存档只保存在这台设备的这个浏览器里。\n复制一份存档码，发到微信「文件传输助手」或存进备忘录。换手机、换浏览器、或者浏览器清了数据，打开游戏点「用存档码找回」粘贴进去就能接着玩。`,
@@ -144,7 +155,7 @@ const scaleDiff=d=>Math.round(d*diffMul());
 /* ================= 属性要求（达标拿奖励，不达标吃惩罚） =================
    奖励选项都有属性要求：属性（含加成）达到就能选，选了必定拿到奖励；达不到就灰掉，只能选惩罚选项。
    要求 = 基准（按帝业阶位与大境界取高者）+ 难度档（易 −5 / 中 0 / 难 +8）。 */
-const reqBase=()=>Math.max(REQ_RANK[Math.min(S.rank,10)]||18,REQ_MAJOR[majorOf(Math.min(S.realm,26))]||0);
+const reqBase=()=>Math.max(REQ_RANK[Math.min(S.rank,10)]||18,REQ_MAJOR[majorOf(Math.min(S.realm,R_TOP))]||0);
 function reqOf(c,ctx){if(!c)return 0;const off=c.lv?REQ_LV[c.lv]:Math.round(((c.difficulty||28)-28)*0.6);const v=clamp(reqBase()+off+(c.plus||0)+((typeof ATTR_REQ_ADJ!=='undefined'&&ATTR_REQ_ADJ[c.attr])||0),5,100);return Math.min(v,attrCap())}/* 要求不超过当前境界的属性上限：不然练满也过不了 */
 function bonusOf(o){const b=o.check&&o.check.bonus;return b==='troops'?Math.min(15,Math.floor(ratio()/2)):(b||0)}
 const meets=(o,ctx)=>!o.check||S.attr[o.check.attr]+bonusOf(o)+((ctx&&ctx.bonus)||0)>=reqOf(o.check,ctx);
@@ -266,7 +277,7 @@ function makePartner(t,a){
   const g=a?a.g:opp();const pr=shuffle(ACTS);const n=t?2+rand(2):1;
   return {id:'p'+Date.now().toString(36)+rand(1000),tid:t?t.id:'assassin',type:t?t.type:(a&&a.type)||'武',origin:t?t.origin[g]:'刺客',
     name:a?a.name:randName(g),g,realm:t?t.realm:S.realm,img:(a&&a.img)||pickImg(g),aff:0,met:false,bonded:false,bondN:0,married:false,
-    prefs:pr.slice(0,n),taboo:pr[n],known:[],lastVisit:mi(),dual:0,spec:pick1(Object.keys(SPEC).filter(k=>SPEC[k].t===(t?t.type:'武')))};
+    prefs:pr.slice(0,1),known:[],lastVisit:mi(),dual:0,spec:pick1(Object.keys(SPEC).filter(k=>SPEC[k].t===(t?t.type:'武')))};
 }
 
 /* ================= 双修：每位道侣每月一次（道侣越多，每月能双修的次数越多），每次奖励按 dualRewardMul 折算 =================
@@ -280,7 +291,7 @@ const typeTxt=p=>`${p.type}类`;
 const typeUse=p=>p.type==='武'?'双修更容易得到修为、武功、防刺客、疗伤、渡劫阵法；防刺客加成较多；护法时让没挡住的天雷伤得轻一些。':'双修更容易得到银两、文功、降猜忌、功德；防刺客加成较少；护法时帮你过悟道这一关。';
 const specOf=p=>{if(!p.spec||!SPEC[p.spec])p.spec=pick1(Object.keys(SPEC).filter(k=>SPEC[k].t===p.type));return SPEC[p.spec]};
 const dualMulOf=p=>(0.5+p.aff/100)*cmMul(p);
-function dualPool(p){const stop=S.xinmo>=CFG.xinmoStop;const ok={xiu:!stop&&S.xiuwei<xiuNeed(S.realm)*CFG.xiuBank,bing:!stop,zheng:!stop,yi:S.injured>0||!!S.hurt,jian:S.guard<CFG.guardMax,mou:S.suspicion>0||(S.route==='a'&&S.rank>=7),zhen:!S.zhen&&S.realm<27};
+function dualPool(p){const stop=S.xinmo>=CFG.xinmoStop;const ok={xiu:!stop&&S.xiuwei<xiuNeed(S.realm)*CFG.xiuBank,bing:!stop,zheng:!stop,yi:S.injured>0||!!S.hurt,jian:S.guard<CFG.guardMax,mou:S.suspicion>0||(S.route==='a'&&S.rank>=7),zhen:!S.zhen&&S.realm<R_FEI};
   const r=Object.keys(SPEC).filter(k=>ok[k]!==false).map(k=>[k,SPEC[k].t===p.type?3:2]);
   if(isAssassin(p)&&(S.suspicion>0&&!(S.route==='a'&&S.rank>=7)))r.push(['ansha',3]);return r}
 const isAssassin=p=>p.tid==='assassin';
@@ -335,7 +346,7 @@ function seekDraw(dm){
   if(tier==='有缘人'&&!canMeet()){const L=luckP();const p=L.p;
     return {tier,text:`山路上你遇到了一位${p.origin}「${p.name}」。（有缘人）`,after:replaceScene(p,`${p.origin}「${p.name}」对你颇有好感。`,()=>meetDone(L),{label:'错过',hint:`不遣散任何人，${p.name}会离开`,run(){logAdd('后宅已满，错过有缘人');result('错过',`你看着${p.name}走远，没有挽留。`,p)}})}}
   const R=CFG.retreatBase*lingMul();const g=e=>apply(dimEff(e,dm));let t,sum='';
-  if(tier==='大吉'){const c=['fu'];if((S.dongtian||0)<3)c.push('dt');if(!S.treasure&&S.realm<27)c.push('bao');const k=pick1(c);
+  if(tier==='大吉'){const c=['fu'];if((S.dongtian||0)<3)c.push('dt');if(!S.treasure&&S.realm<R_FEI)c.push('bao');const k=pick1(c);
     if(k==='dt'){S.dongtian=(S.dongtian||0)+1;t='你在深山里寻到一处洞天福地，灵气浓得化不开。';sum=`闭关修为永久 +10%，现在共 +${S.dongtian*10}%`}
     else if(k==='bao'){S.treasure=1;t='古修洞府的石台上，静静放着一件护体法宝。';sum='得到护体法宝：下次渡劫时直接用它护体，不用再花钱'}
     else{t='你误入一座上古遗府，石壁上刻满了前人的心得。';sum=g({xiuwei:Math.round(R*6.5),merit:40})}
@@ -428,7 +439,7 @@ function tribScene(key){
   if(ms.length===1)opts.push(helperOpt(ms[0]));
   else if(ms.length>1)opts.push({label:'请道侣护法',hint:'护体 100，外加道侣的加成；点进去选请哪一位',run(){queue.unshift({who:me(),tag:'渡劫',title:`${T.name}：请谁护法`,text:'请哪一位道侣为你护法？',options:[...ms.map(helperOpt),{label:'返回',hint:'回到渡劫准备',run(){queue.unshift(tribScene(key))}}]})}});
   opts.push({label:'再等等',hint:'先不渡劫，继续修炼根骨和悟性',run(){}});
-  return {who:me(),tag:'渡劫',bg:'修行',title:`${T.name}：准备`,text:`${T.intro}\n\n消耗功德 ${mc}。三道天雷考根骨，强弱要到渡劫时才知道，要求大约 ${lo.map((d,i)=>d===hi[i]?d:`${d}~${hi[i]}`).join(' / ')}（你 ${g}${S.zhen?'；已算上道侣阵法 −5':''}）。挡下的护体 −10，没挡住的护体 −${CFG.tribHit}，护体归零即失败。\n第四关悟道：要求悟性 ${xd}（你 ${S.attr.wuxing}；心魔越高、后宅越不宁，要求越高）。\n成功：境界提升，全属性 +2，三道都挡下算完美渡劫 +3。失败：跌回上一层，重伤三月，所耗功德不退。`+(die?`\n心魔太重：要是被天雷打碎护体，会当场陨落。`:''),options:opts};
+  return {who:me(),tag:'渡劫',bg:'修行',title:`${T.name}：准备`,text:`${T.intro}\n\n消耗功德 ${mc}。三道天雷考根骨，强弱要到渡劫时才知道，要求大约 ${lo.map((d,i)=>d===hi[i]?d:`${d}~${hi[i]}`).join(' / ')}（你 ${g}${S.zhen?'；已算上道侣阵法 −5':''}）。挡下的护体 −10，没挡住的护体 −${CFG.tribHit}，护体归零即失败。\n第四关悟道：要求悟性 ${xd}（你 ${S.attr.wuxing}；心魔越高、后宅越不宁，要求越高）。\n成功：境界提升，全属性 +${CFG.tribAttrGain-1}，三道都挡下算完美渡劫 +${CFG.tribAttrGain}。失败：跌回上一层，重伤三月，所耗功德不退。`+(die?`\n心魔太重：要是被天雷打碎护体，会当场陨落。`:''),options:opts};
 }
 function tribRun(key,hp,guard,xd,mod){
   mod=mod||{};const T=TRIB[key];const {lo,hi}=tribReq();const ds=lo.map((l,i)=>l+rand(hi[i]-l+1));const hit=mod.hit||CFG.tribHit;xd+=mod.xdx||0;
@@ -441,9 +452,9 @@ function tribRun(key,hp,guard,xd,mod){
   const xok=S.attr.wuxing>=xd;L.push(`${T.xinmo}\n→ 第四关悟道：悟性 ${S.attr.wuxing}${xok?' ≥ ':' < '}${xd}，${xok?'守住了本心':'没能守住'}。`);
   if(!xok){ev('trib',{ok:false});fall();S.xinmo=clamp(S.xinmo+10,0,100);L.push(`${T.fail}（跌回${realmName(S.realm)}，重伤三月，心魔 +10）`);logAdd(`${T.name}失败`);result('渡劫失败',L.join('\n\n'));return}
   ev('trib',{ok:true,perfect:!failed});
-  if(key==='feisheng'){S.realm=27;victory(T.win);return}
-  S.realm++;S.xiuwei=carryXiu(xiuNeed(S.realm-1));Object.keys(ATTR).forEach(k=>gainAttr(k,failed?2:3));
-  L.push(`${T.win}\n${failed?'':'完美渡劫！'}脱胎换骨：全部属性 +${failed?2:3}，属性上限提高到 ${attrCap()}。`);
+  if(key==='feisheng'){S.realm=R_FEI;victory(T.win);return}
+  S.realm++;S.xiuwei=carryXiu(xiuNeed(S.realm-1));const ga=failed?CFG.tribAttrGain-1:CFG.tribAttrGain;Object.keys(ATTR).forEach(k=>gainAttr(k,ga));
+  L.push(`${T.win}\n${failed?'':'完美渡劫！'}脱胎换骨：全部属性 +${ga}，属性上限提高到 ${attrCap()}。`);
   if(guard){guard.aff=clamp(guard.aff+10,0,100);L.push(`${guard.name}为你护法，好感 +10。`)}
   logAdd(`渡过${T.name}，晋入${realmName(S.realm)}`);result(T.name,L.join('\n\n'),me());
 }
@@ -462,7 +473,7 @@ function breakInfo(){
 /* ================= 年末大事件 ================= */
 const YE_HINT={刺杀:'有消息称，有人花重金买通刺客要你人头。',战乱:'边境不太平，探子说有兵马在集结。',天灾:'钦天监说今冬天象有异。',朝廷:'听说朝中有人在翻你的旧账，钦差可能要来。',宗门:'修仙界最近风声不对。'};
 function rollYearEnd(){
-  const r=ratio();const w={刺杀:20+S.suspicion/2,战乱:15+Math.max(0,20-r)+(S.route==='a'&&S.rank>=7?40:0),天灾:15,朝廷:8+S.suspicion/2+(S.route==='b'&&S.rank>=7?20:0),宗门:S.realm>=11?15:0};
+  const r=ratio();const w={刺杀:20+S.suspicion/2,战乱:15+Math.max(0,20-r)+(S.route==='a'&&S.rank>=7?40:0),天灾:15,朝廷:8+S.suspicion/2+(S.route==='b'&&S.rank>=7?20:0),宗门:S.realm>=14?15:0};
   let x=Math.random()*Object.values(w).reduce((a,b)=>a+b,0);for(const k in w){x-=w[k];if(x<=0)return k}return '刺杀';
 }
 function yearEndEvent(){
@@ -569,30 +580,30 @@ const CH_DEF=[null,
  {done:()=>S.minxin>=40&&S.realm>=3,prog:()=>`民心 ${S.minxin}/40，${realmName(S.realm)}/练气三层`,due:2},
  {done:()=>S.rank>=2,prog:()=>promoProg(2),due:3},
  {done:()=>S.rank>=3,prog:()=>promoProg(3),due:6},
- {done:()=>S.realm>=11,prog:()=>`${realmName(S.realm)}；筑基需要${rankGap(3)}、功德 ${meritNeed('zhuji')}`,due:8},
+ {done:()=>S.realm>=14,prog:()=>`${realmName(S.realm)}；金丹需要${rankGap(3)}、功德 ${meritNeed('jindan')}`,due:8},
  {done:()=>S.rank>=4,prog:()=>promoProg(4),due:10},
  {done:()=>S.rank>=5,prog:()=>promoProg(5),due:12},
  {done:()=>S.rank>=6&&!!S.route,prog:()=>promoProg(6),due:16},
- {done:()=>S.realm>=15,prog:()=>`${realmName(S.realm)}；金丹需要${rankGap(6)}、功德 ${meritNeed('jindan')}`,due:17},
+ {done:()=>S.realm>=18,prog:()=>`${realmName(S.realm)}；元婴需要${rankGap(6)}、功德 ${meritNeed('yuanying')}`,due:17},
  {done:()=>S.rank>=7,prog:()=>promoProg(7),due:22},
  {done:()=>S.rank>=8,prog:()=>promoProg(8),due:26},
  {done:()=>S.rank>=9,prog:()=>promoProg(9),due:33},
- {done:()=>S.realm>=19,prog:()=>`${realmName(S.realm)}；元婴需要${rankGap(9)}、功德 ${meritNeed('yuanying')}`,due:34},
+ {done:()=>S.realm>=22,prog:()=>`${realmName(S.realm)}；化神需要${rankGap(9)}、功德 ${meritNeed('huashen')}`,due:34},
  {done:()=>S.rank>=10,prog:()=>promoProg(10),due:41},
- {done:()=>S.realm>=23,prog:()=>`${realmName(S.realm)}；化神需要登基、功德 ${meritNeed('huashen')}`,due:42},
- {done:()=>S.realm>=27||(S.realm>=26&&S.xiuwei>=xiuNeed(26)),prog:()=>`${realmName(Math.min(S.realm,26))}，修为 ${fmt(S.xiuwei)}/${fmt(xiuNeed(Math.min(S.realm,26)))}`,due:50},
- {done:()=>S.realm>=27,prog:()=>`飞升需要功德 ${meritNeed('feisheng')}，心魔低于 ${CFG.xinmoNoBreak}`,due:52}];
+ {done:()=>S.realm>=30,prog:()=>`${realmName(S.realm)}；合体需要登基、功德 ${meritNeed('heti')}`,due:42},
+ {done:()=>S.realm>=R_FEI||(S.realm>=R_TOP&&S.xiuwei>=xiuNeed(R_TOP)),prog:()=>`${realmName(Math.min(S.realm,R_TOP))}，修为 ${fmt(S.xiuwei)}/${fmt(xiuNeed(Math.min(S.realm,R_TOP)))}`,due:50},
+ {done:()=>S.realm>=R_FEI,prog:()=>`飞升需要功德 ${meritNeed('feisheng')}，心魔低于 ${CFG.xinmoNoBreak}`,due:52}];
 /* 阶段进度拆成一项一项：完成的绿色打勾 */
 function chapItems(n){const it=[];const add=(t,done,pct)=>it.push({t,done:!!done,pct:done?1:Math.max(0,Math.min(0.99,pct||0))});
-  const promoCh={2:2,3:3,5:4,6:5,7:6,9:7,10:8,11:9,13:10};const realmCh={4:[10,3,'zhuji'],8:[14,6,'jindan'],12:[18,9,'yuanying'],14:[22,10,'huashen']};
+  const promoCh={2:2,3:3,5:4,6:5,7:6,9:7,10:8,11:9,13:10};const realmCh={4:[13,3,'jindan'],8:[17,6,'yuanying'],12:[21,9,'huashen'],14:[29,10,'heti']};
   if(n===1){add(`民心 ${S.minxin}/40`,S.minxin>=40,S.minxin/40);add(`${realmName(S.realm)}/练气三层`,S.realm>=3,S.realm/3)}
   else if(promoCh[n]){const r=promoCh[n];empItems(r).forEach(x=>{const l=x.l.replace(/（.*）/,'').replace('上次晋升后的','');add(/次数/.test(l)?`${l.replace('次数','')} ${x.v}/${x.n} 次`:`${l} ${x.f(x.v)}/${x.f(x.n)}`,x.pct>=1,x.pct)});if(r===6)add('晋升第 6 阶后选择路线',!!S.route,0)}
   else if(realmCh[n]){const [pre,rk,key]=realmCh[n];const need=xiuNeed(pre);
-    add(`${realmName(Math.min(S.realm,26))}/${realmName(pre)}`,S.realm>=pre,S.realm/pre);
+    add(`${realmName(Math.min(S.realm,R_TOP))}/${realmName(pre)}`,S.realm>=pre,S.realm/pre);
     if(S.realm>=pre)add(`修为 ${fmt(S.realm>pre?need:S.xiuwei)}/${fmt(need)}`,S.realm>pre||S.xiuwei>=need,S.xiuwei/need);
     add(rk>=10?'登基':`帝业第 ${rk} 阶`,S.rank>=rk,S.rank/rk);add(`功德 ${fmt(S.merit)}/${fmt(meritNeed(key))}`,S.merit>=meritNeed(key),S.merit/meritNeed(key));
     it.push({t:'条件齐了到「修行」渡劫',done:false,pct:2,tip:1})}
-  else if(n===15){const r=Math.min(S.realm,26);add(`${realmName(r)}/化神圆满`,S.realm>=26,S.realm/26);if(S.realm>=26)add(`修为 ${fmt(S.realm>=27?xiuNeed(26):S.xiuwei)}/${fmt(xiuNeed(26))}`,S.realm>=27||S.xiuwei>=xiuNeed(26),S.xiuwei/xiuNeed(26))}
+  else if(n===15){const r=Math.min(S.realm,R_TOP);add(`${realmName(r)}/大乘圆满`,S.realm>=R_TOP,S.realm/R_TOP);if(S.realm>=R_TOP)add(`修为 ${fmt(S.realm>=R_FEI?xiuNeed(R_TOP):S.xiuwei)}/${fmt(xiuNeed(R_TOP))}`,S.realm>=R_FEI||S.xiuwei>=xiuNeed(R_TOP),S.xiuwei/xiuNeed(R_TOP))}
   else if(n===16){add(`功德 ${fmt(S.merit)}/${fmt(meritNeed('feisheng'))}`,S.merit>=meritNeed('feisheng'),S.merit/meritNeed('feisheng'));add(`心魔 ${S.xinmo}（要低于 ${CFG.xinmoNoBreak}）`,S.xinmo<CFG.xinmoNoBreak,0.5);add('化神圆满后到「修行」渡飞升劫',false,2)}
   return it}
 function chipsHTML(it){const und=it.filter(x=>!x.done&&x.pct<=1);const low=und.length?und.reduce((a,b)=>b.pct<a.pct?b:a):null;
@@ -717,7 +728,7 @@ function monthEnd(){
 
 /* ================= 后宅 ================= */
 const BOND_AFF=[40,55,80];
-/* 刺客道侣：第三段羁绊要好感 95，且结为道侣满 assassinBondMonths 个月；喜好只有 1 样，普通相处好感只 +1 */
+/* 刺客道侣：第三段羁绊要好感 95，且结为道侣满 assassinBondMonths 个月；其他相处方式好感上限更低（assassinRandHi） */
 const ASSN_BOND_AFF=[40,55,95];
 const bondAff=(p,i)=>(isAssassin(p)?ASSN_BOND_AFF:BOND_AFF)[i];
 const marriedMonths=p=>{if(!p.married)return 0;if(p.marriedMi==null)p.marriedMi=mi();return mi()-p.marriedMi};
@@ -743,12 +754,15 @@ function visit(p,pos){
   const n=talkLeft(p),opts=[];const again=()=>{if(talkLeft(p)>0)visit(p,1)};
   if(n>0){
     if(p.married){const done=p.dual===mi(),m=dualMulOf(p)*CFG.dualRewardMul;
-      opts.push({label:'双修',cls:'dual',hint:done?`这个月已经和${p.name}双修过了`:`随机得到一份奖励：修为、武功、文功、银两、功德、防刺客、降猜忌、疗伤、渡劫阵法之一；${p.type}类道侣更容易得到${p.type==='武'?'修为、武功、防刺客、疗伤、渡劫阵法':'银两、文功、降猜忌、功德'}。好感越深、才貌越出众，收获越好。${isAssassin(p)?`刺客出身：奖励更大，还可能替你暗中除掉政敌（猜忌 −15）；但也可能变成惩罚（负伤、心魔加重或猜忌上升）。`:''}每位道侣每月可以双修一次（和相处二选一），道侣越多，每月能双修的次数越多`,disabled:done,
+      opts.push({label:'双修',cls:'dual',hint:done?`这个月已经和${p.name}双修过了`:`随机得到一份奖励，多是${p.type==='武'?'修为、武功、防刺客、疗伤':'银两、文功、功德、降猜忌'}一类；好感越深、才貌越出众，收获越好${isAssassin(p)?'。刺客出身，奖励更大，有时还会替你除掉政敌':''}`,disabled:done,
         run(){ev('dual');useTalk(p);p.dual=mi();const d=dualDraw(p);result('双修',d.sum?`${d.t}\n（${d.sum}）`:d.t,p,true);again()}})}
-    if(p.aff<100)shuffle(ACTS).slice(0,5).forEach(a=>{const k=p.known.includes(a);const val=p.prefs.includes(a)?CFG.affLike:a===p.taboo?-CFG.affTaboo:isAssassin(p)?1:CFG.affNormal;
-      opts.push({label:a,hint:k?`好感 ${sg(val)}`:'',run(){useTalk(p);let t;
-        if(val===CFG.affLike){t=`${p.name}眉眼都亮了，看得出很喜欢。`;S.harmony=clamp(S.harmony+1,0,100)}else if(val<0)t=`${p.name}脸色淡了下来，显然不喜欢。`;else t=`你与${p.name}${a}，相处融洽。`;
-        if(!k)p.known.push(a);p.aff=clamp(p.aff+val,0,100);result(`与${p.name}${a}`,`${t}\n（好感 ${sg(val)}）`,p);again()}})});
+    /* 相处：每人只有一样最喜欢的（固定 +affLike）；其他的每次要么 affRandHi（几率 affUpP）、要么 affRandLo；每次给 3 个，最喜欢的有 favShow 的几率在里面 */
+    if(p.aff<100){const fav=p.prefs[0],hi=isAssassin(p)?CFG.assassinRandHi:CFG.affRandHi,lo=CFG.affRandLo;
+      const others=shuffle(ACTS.filter(x=>x!==fav));const list=Math.random()<CFG.favShow?shuffle([fav,...others.slice(0,2)]):others.slice(0,3);
+      list.forEach(a=>{const k=p.known.includes(a),isFav=a===fav;
+      opts.push({label:a,hint:k?(isFav?`好感 +${CFG.affLike}`:`好感 ${sg(lo)} 或 ${sg(hi)}`):'',run(){useTalk(p);const val=isFav?CFG.affLike:(Math.random()<CFG.affUpP?hi:lo);let t;
+        if(isFav){t=`${p.name}眉眼都亮了，看得出很喜欢。`;S.harmony=clamp(S.harmony+1,0,100)}else if(val<0)t=`${p.name}脸色淡了下来，看得出没什么兴致。`;else t=`你与${p.name}${a}，相处融洽。`;
+        if(!k)p.known.push(a);p.aff=clamp(p.aff+val,0,100);result(`与${p.name}${a}`,`${t}\n（好感 ${sg(val)}）`,p);again()}})})}
     if(p.aff>=100)opts.push({label:'好感已满',hint:affFullTxt(p),disabled:true,run(){}});
   }
   if(!p.married&&p.bondN>=2&&p.aff>=CFG.marryAff){const full=married().length>=cap();const price=brideCost(p),poor=S.silver<price;
@@ -768,7 +782,7 @@ function visit(p,pos){
   if(p.married){const x=divorceXinmo(p);opts.push({label:'休离',hint:`心魔 +${x}，后宅安宁 −10；${p.name}会离开，不再回来`,run(){queue.unshift(divorceScene(p))}})}
   opts.push({label:'返回',run(){}});
   const nb=chain.length>p.bondN?bondAff(p,p.bondN):null;
-  const hint=`\n${cmTxt(p)}`+(cmMul(p)<1?'——她已渐渐配不上王府的门第。':'')+(isAssassin(p)&&p.married&&!assassinFree(p)?`\n${p.name}心结未解，每月可能设法出逃，府中守备越严越拦得住。走完三段羁绊后不再出逃。`:'')+`\n${typeTxt(p)}：${typeUse(p)}`+(p.married?'好感越高，双修奖励越大。':'结为道侣后可以双修，随机得到奖励。')+`\n本月还可以互动 ${n} 次。`+(!p.married?(p.bondN>=2&&p.aff>=60?'\n可以提亲了。':`\n提亲条件：好感 60，且完成前两段羁绊事件（已完成 ${Math.min(p.bondN,2)}/2）。`):'')+(nb!=null?`\n感情再深一些，会有新的故事${isAssassin(p)&&p.bondN===2?`；第三段要结为道侣满 ${CFG.assassinBondMonths/12} 年（${p.married?`已 ${Math.floor(marriedMonths(p)/12)} 年 ${marriedMonths(p)%12} 个月`:'尚未成亲'}）`:''}。`:'')+(isAssassin(p)?'\n刺客出身，心防很重：喜欢的相处方式只有一样，其余相处好感只 +1。':'');
+  const hint=`\n${cmTxt(p)}`+(cmMul(p)<1?'——她已渐渐配不上王府的门第。':'')+(isAssassin(p)&&p.married&&!assassinFree(p)?`\n${p.name}心结未解，每月可能设法出逃，府中守备越严越拦得住。走完三段羁绊后不再出逃。`:'')+`\n${typeTxt(p)}：${typeUse(p)}`+(p.married?'好感越高，双修奖励越大。':'结为道侣后可以双修，随机得到奖励。')+`\n本月还可以互动 ${n} 次。`+(!p.married?(p.bondN>=2&&p.aff>=60?'\n可以提亲了。':`\n提亲条件：好感 60，且完成前两段羁绊事件（已完成 ${Math.min(p.bondN,2)}/2）。`):'')+(nb!=null?`\n感情再深一些，会有新的故事${isAssassin(p)&&p.bondN===2?`；第三段要结为道侣满 ${CFG.assassinBondMonths/12} 年（${p.married?`已 ${Math.floor(marriedMonths(p)/12)} 年 ${marriedMonths(p)%12} 个月`:'尚未成亲'}）`:''}。`:'')+(isAssassin(p)?'\n刺客出身，心防很重：除了最喜欢的，其他相处方式好感涨得少。':'');
   put({who:p,title:p.name,text:`${p.origin}，${stageOf(p.aff)}（好感 ${p.aff}）。${n>0?'一起做什么？':'这个月已经陪过很久了。'}${hint}`,options:opts});
 }
 const divorceXinmo=p=>cmMul(p)<=0.3?5:CFG.divorceXinmo+(p.aff>=80?10:p.aff>=60?5:0);
@@ -836,7 +850,7 @@ function doAction(d){
   if(d==='修行'){const mc=Math.round(CFG.meritStudyCost*rankMul()),used=S.mstudyMi===mi(),full=S.xiuwei>=xiuNeed(S.realm)*CFG.xiuBank,g=Math.round(CFG.retreatBase*0.6*lingMul()*realmMul());
     const blk=S.xinmo>=CFG.xinmoStop;opts.push({label:'以功德悟道',hint:used?'这个月已经悟过了':full?'修为已积满，先突破':blk?'心魔过重，修为不涨':`花费 功德 ${mc}；修为 +${fmt(g)}；每月一次，不占行动力`,disabled:used||full||blk||S.merit<mc,
       run(){ev('mstudy');S.merit-=mc;S.mstudyMi=mi();const r=apply({xiuwei:Math.round(CFG.retreatBase*0.6*lingMul())});result('以功德悟道',`你把这些年的善缘一一回想，心境澄明，修为随之精进。\n（功德 −${mc}，${r}）`)}})}
-  if(d==='修行'&&S.xiuwei>=xiuNeed(S.realm)&&S.realm<27){const b=breakInfo();opts.push({label:b.label,hint:b.hint+'；不占行动力',disabled:!b.ok,run:b.run})}
+  if(d==='修行'&&S.xiuwei>=xiuNeed(S.realm)&&S.realm<R_FEI){const b=breakInfo();opts.push({label:b.label,hint:b.hint+'；不占行动力',disabled:!b.ok,run:b.run})}
   if(house)S.partners.forEach(p=>{const n=talkLeft(p);opts.push({label:`看望${p.name}`,img:p.img,hint:`${p.origin}·${p.type}类，${stageOf(p.aff)}（好感 ${p.aff}），才貌 ${p.cm==null?(p.cm=rollCm()):p.cm}·${cmTier(p)[2]}${p.married?'，已结为道侣':''}；本月还可互动 ${n} 次`,disabled:n<=0,run(){visit(p);houseEvent()}})});
   ACTIONS[d].filter(a=>!a.cond||a.cond()).forEach(a=>{const c=a.cost?a.cost():null;const full=a.id==='retreat'&&S.xiuwei>=xiuNeed(S.realm)*CFG.xiuBank;
     const used=house&&S.monthUsed&&S.monthUsed[a.id]===mi();
@@ -872,7 +886,7 @@ const bribeBaseCost=()=>Math.round(Math.min(CFG.bribeCap*rankMul(),CFG.bribeBase
 const bribeCost=()=>bribeBaseCost()*(S.bribeMi===mi()?2:1);
 
 function newGame(name,g){
-  S={v:SAVE_V,rs:Math.floor(_rnd()*2147483646)+1,exp:{},chapMi:1,name,gender:g,year:1,month:1,phase:'start',ap:0,attr:{},realm:1,rank:1,route:null,chap:1,xiuwei:0,wengong:0,wugong:0,merit:0,xinmo:0,
+  S={v:SAVE_V,rs:Math.floor(_rnd()*2147483646)+1,exp:{},chapMi:1,name,gender:g,year:1,month:1,phase:'start',ap:0,attr:{},realm:1,rv:2,rank:1,route:null,chap:1,xiuwei:0,wengong:0,wugong:0,merit:0,xinmo:0,
     minxin:CFG.startMinxin,silver:CFG.startSilver,troops:CFG.startTroops,train:20,suspicion:CFG.startSuspicion,harmony:CFG.startHarmony,
     court:CFG.courtStart,courtBase:CFG.courtStart,warMonth:0,
     pill:0,injured:0,accept:true,partners:[],prisoners:[],metT:{},cd:{},done:{},chains:[],promoCD:0,lowMinxin:0,log:[],over:null,
@@ -892,7 +906,7 @@ function portrait(w,cap,zoom){
   return `<div class="portrait${zoom?' zoomable':''}"${zoom?` data-a="zoom" data-src="${esc(imgUrl(w.img))}" data-name="${esc(w.name||'')}"`:''}><img src="${esc(imgUrl(w.img))}" alt="${esc(w.name)}的立绘"><span class="seal">${chars.map(esc).join('')}</span>${cap?`<div class="pcap">${esc(w.origin||'')}</div>`:''}</div>`;
 }
 function renderStatus(){
-  const rl=Math.min(S.realm,26),need=xiuNeed(rl),pct=Math.min(100,Math.round(S.xiuwei/need*100));
+  const rl=Math.min(S.realm,R_TOP),need=xiuNeed(rl),pct=Math.min(100,Math.round(S.xiuwei/need*100));
   const ch=(l,v,w)=>`<span class="tchip${w?' warn':''}">${l}<b>${v}</b></span>`;
   $('#status').innerHTML=`<div class="t1"><span class="tname">${esc(S.name)}</span><span class="tdate">${S.phase==='start'&&queue.length&&S.actLabel?S.actLabel:dateTxt()}</span>${S.phase==='act'||S.phase==='random'?`<span class="ap" title="本月剩余行动力">行动力 <b>${S.phase==='act'?S.ap:0}</b>/${S.hurt?CFG.apInjured:CFG.apMonth}</span>`:''}</div>
   <div class="t2"><span>${realmName(rl)}</span><div class="tbar" title="修为 ${S.xiuwei}/${need}"><i style="width:${pct}%"></i></div><span>${rankName(S.rank)}</span></div>
@@ -925,7 +939,7 @@ function hubHTML(){
 function helpHTML(){if(typeof HELP!=='function')return'';return `<h4 class="sub" id="help">游戏说明</h4>${HELP().map(([t,x])=>`<details class="help"><summary>${esc(t)}</summary><p>${esc(x)}</p></details>`).join('')}`}
 function questHTML(){
   const pv=assassinPreview();const c=S.chap<=16?chap():null,d=S.chap<=16?CH_DEF[S.chap]:null;
-  const rq=S.rank<10?promoNeed(S.rank+1):null;const rl=Math.min(S.realm,26);
+  const rq=S.rank<10?promoNeed(S.rank+1):null;const rl=Math.min(S.realm,R_TOP);
   return `<div class="page quest">
   <h4 class="sub" style="margin-top:0">终极目标</h4><p class="note">登上皇位，并羽化飞升。两件都做到才算通关。</p>
   ${c?`<h4 class="sub">阶段目标（${S.chap}/16）：${esc(c.name)}</h4><div class="qcard"><p>${esc(c.intro)}</p><p class="qprog">${chipsHTML(chapItems(S.chap))}</p><p class="qrew">${S.acc?esc(accTxt()):`期限：第 ${chDue()} 年腊月底（${chLeftTxt()}）。到期没完成会被问责：朝廷申饬 → 削减封地 → 夺去兵权 → 废为庶人（游戏结束），每级只有 2 个月补救。`}</p></div>`:''}
@@ -948,7 +962,7 @@ function questHTML(){
 /* ================= 帝业页：晋升下一阶每项要多少、有多少、差多少 ================= */
 function empItems(r){const q=promoNeed(r);if(!q)return [];
   const it=[['文功（处理公务、巡视民情、事件）',S.wengong,q.wen,fmt],['武功（剿匪巡境、事件）',S.wugong,q.wu,fmt],['银两（晋升时扣除）',S.silver,q.silver,fmt],['民心（门槛，不扣）',S.minxin,q.minxin,x=>x],
-    ['境界（门槛）',S.realm,q.realm,x=>realmName(Math.min(x,26))],['上次晋升后的治理次数',actsSince('治理'),q.acts,x=>x+' 次'],['上次晋升后的军务次数',actsSince('军务'),q.acts,x=>x+' 次']];
+    ['境界（门槛）',S.realm,q.realm,x=>realmName(Math.min(x,R_TOP))],['上次晋升后的治理次数',actsSince('治理'),q.acts,x=>x+' 次'],['上次晋升后的军务次数',actsSince('军务'),q.acts,x=>x+' 次']];
   if(q.ratio!=null)it.push(['兵力比（兵变线门槛）',ratio(),q.ratio,x=>x+'%']);
   return it.map(([l,v,n,f])=>({l,v,n,f,pct:Math.min(1,n>0?v/n:1)}))}
 function empHTML(){
@@ -977,10 +991,10 @@ function empHTML(){
 }
 function overHTML(){
   if(S.over.win)return `<div class="page over win"><h2>${esc(S.over.title)}</h2><p>${esc(S.over.text)}</p><p class="note">历时 ${S.year} 年，登基为帝，羽化飞升。</p><button class="opt primary" data-a="restart">再来一局</button></div>`;
-  return `<div class="page over"><h2>${esc(S.over.title)}</h2><p>${esc(S.over.text)}</p><p class="note">历时 ${S.year} 年，止步于${realmName(Math.min(S.realm,26))}、${rankName(S.rank)}。</p><button class="opt primary" data-a="restart">重新开始</button></div>`;
+  return `<div class="page over"><h2>${esc(S.over.title)}</h2><p>${esc(S.over.text)}</p><p class="note">历时 ${S.year} 年，止步于${realmName(Math.min(S.realm,R_TOP))}、${rankName(S.rank)}。</p><button class="opt primary" data-a="restart">重新开始</button></div>`;
 }
 function roleHTML(){
-  const rl=Math.min(S.realm,26),need=xiuNeed(rl);
+  const rl=Math.min(S.realm,R_TOP),need=xiuNeed(rl);
   const ch=(l,v,w)=>`<div class="chip${w?' warn':''}"><span>${l}</span><b>${v}</b></div>`;
   return `<div class="page"><div class="prow">${portrait(me(),false,true)}<div><h3 class="ph">${esc(S.name)}</h3><p class="note">${realmName(rl)}，${rankName(S.rank)}
 修为 ${fmt(S.xiuwei)}/${fmt(need)}
@@ -995,12 +1009,11 @@ function roleHTML(){
 }
 function ptnHTML(){
   if(!S.partners.length)return '<div class="page"><p class="note">还没有结识任何人。「游历 → 寻访机缘」有机会遇到有缘人，年末擒获的刺客也可以收为己用。</p></div>';
-  return `<div class="page"><p class="note">后宅 ${S.partners.length}/${CFG.knownMax} 人，道侣 ${married().length}/${cap()} 位。当前门第标准：才貌 ${cmStd()}（随帝业上涨）。</p>${S.partners.map(p=>{const kp=p.known.filter(a=>p.prefs.includes(a));const kt=p.known.includes(p.taboo);
+  return `<div class="page"><p class="note">后宅 ${S.partners.length}/${CFG.knownMax} 人，道侣 ${married().length}/${cap()} 位。当前门第标准：才貌 ${cmStd()}（随帝业上涨）。</p>${S.partners.map(p=>{const kf=p.known.includes(p.prefs[0]);
     return `<div class="pcard">${portrait(p,false,true)}<div><h4>${esc(p.name)}</h4><div class="note" style="margin:0">${esc(p.origin)}，${p.type}类，${stageOf(p.aff)}（好感 ${p.aff}）${p.married?'，已结为道侣':''}
 ${cmTxt(p)}
 羁绊事件：${p.bondN}/${bondsOf(p).length}${p.bondN<bondsOf(p).length?`（感情再深一些会有新的故事${isAssassin(p)&&p.bondN===2?`；要结为道侣满 ${CFG.assassinBondMonths/12} 年`:''}）`:''}
-喜好：${kp.length?kp.join('、'):'未知'}（共 ${p.prefs.length} 项）
-禁忌：${kt?p.taboo:'未知'}</div></div></div>`}).join('')}</div>`;
+最喜欢：${kf?p.prefs[0]:'未知'}</div></div></div>`}).join('')}</div>`;
 }
 /* 开发者说明（更新日志），内容在 data/changelog.js */
 function devlogHTML(){const L=typeof CHANGELOG!=='undefined'?CHANGELOG:[];

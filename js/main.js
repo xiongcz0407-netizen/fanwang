@@ -63,7 +63,7 @@ function gmExec(c){
     case 'random':{const t=pick1(ALL_EV.filter(t=>t.cat==='突发'));queue.unshift(taskScene(t));break}
     case 'court':{const t=pick1(ALL_EV.filter(t=>t.cat==='朝廷'&&condOK(t.cond)));if(t)queue.unshift(sceneFor(t));break}
     case 'yearend':yearEndEvent();break;
-    case 'trib':{const k=TRIB_AT[S.realm];if(k)queue.unshift(tribScene(k));else result('GM','当前不在大境界关口（练气十层、筑基圆满、金丹圆满、元婴圆满、化神圆满）。');break}
+    case 'trib':{const k=TRIB_AT[S.realm];if(k)queue.unshift(tribScene(k));else result('GM','当前不在大境界关口（每个大境界的圆满，练气是九层）。');break}
     case 'deed':deedScene();break;
     case 'task':{const t=TASKMAP[c.arg];if(t)queue.unshift(taskScene(t));break}
     case 'skip':queue=[];S.ap=0;if(['act','start'].includes(S.phase))S.phase='random';break;
