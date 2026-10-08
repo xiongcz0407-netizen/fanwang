@@ -13,7 +13,7 @@ const DEFAULT_CFG={
   // 渡劫消耗功德（基础值，会按阶段放大显示）
   meritZhu:250,meritJin:450,meritYuan:1500,meritHua:4000,meritLian:1000,meritHe:7000,meritDa:1000,meritFei:10500,tribAttrGain:2,xinmoStop:60,xinmoNoBreak:80,tribDiffPerMajor:0.35,
   // 帝业：每升一阶，奖励放大 rankScale（第1阶×1，第10阶×5.5）
-  rankScale:0.5,lingPerRank:0.15,promoFailLoss:15,
+  rankScale:0.5,lingPerRank:0.15,promoFailLoss:15,promoBribeRate:40,promoReqPlus:6,
   // 经济
   incomeBase:70,incomePerMinxin:1.0,incomeRankScale:0.1,industryPerRank:65,industryDouble:0.5,upkeepPer100:1.5,freeTroopsPerRank:1500,minxinDecay:1,minxinDecayStep:25,minxinDecayPer3Rank:1,minxinDecayRatio:40,
   // 兵力
@@ -35,7 +35,7 @@ const CFGL={startAttr:'开局属性',startSilver:'开局银两',startTroops:'开
   retreatBase:'闭关基础修为',naturalPerGengu:'每点根骨月修为',dualMul:'双修倍率（已停用）',dualHigherBonus:'道侣境界高加成（已停用）',studyXiuwei:'参悟功法修为',
   normalBase:'普通突破基础%',normalGengu:'普通突破根骨系数',normalCap:'突破成功率上限%',bottleBase:'瓶颈突破基础%',bottleGengu:'瓶颈根骨系数',bottleWuxing:'瓶颈悟性系数',pillBonus:'破障丹加成%',pillWuxingStep:'悟性每多少点一炉多出1颗丹',pillCost:'破障丹价格',pillRepeat2:'同月第2炉价格倍数',pillRepeat3:'同月第3炉起价格倍数',
   meritZhu:'筑基耗功德',meritJin:'金丹耗功德',meritYuan:'元婴耗功德',meritHua:'化神耗功德',meritLian:'炼虚耗功德',meritHe:'合体耗功德',meritDa:'大乘耗功德',meritFei:'飞升耗功德',tribAttrGain:'渡劫成功全部属性提升（没完美渡劫少 1）',tribDiffPerMajor:'每大境界渡劫难度增幅',xinmoStop:'心魔停滞线',xinmoNoBreak:'心魔禁渡劫线',
-  rankScale:'每阶奖励放大',promoFailLoss:'晋升失败文功武功损失%',lingPerRank:'每阶修行灵脉加成',incomeBase:'月收入基数',incomePerMinxin:'每点民心收入',incomeRankScale:'每阶收入增幅',industryPerRank:'产业价格基准(×帝业阶)',industryDouble:'产业每多几份基准价格翻倍',freeTroopsPerRank:'每阶免饷府兵人数',upkeepPer100:'每百私兵月军饷',minxinDecayStep:'民心每多少点每月多掉1',minxinDecay:'民心每月自然下降',minxinDecayPer3Rank:'每5阶民心多降',minxinDecayRatio:'兵力比每几%民心多降1',
+  rankScale:'每阶奖励放大',promoFailLoss:'晋升失败文功武功损失%',promoBribeRate:'晋升打点价格=该阶晋升银两的%',promoReqPlus:'第5阶起晋升关卡属性要求额外加几',lingPerRank:'每阶修行灵脉加成',incomeBase:'月收入基数',incomePerMinxin:'每点民心收入',incomeRankScale:'每阶收入增幅',industryPerRank:'产业价格基准(×帝业阶)',industryDouble:'产业每多几份基准价格翻倍',freeTroopsPerRank:'每阶免饷府兵人数',upkeepPer100:'每百私兵月军饷',minxinDecayStep:'民心每多少点每月多掉1',minxinDecay:'民心每月自然下降',minxinDecayPer3Rank:'每5阶民心多降',minxinDecayRatio:'兵力比每几%民心多降1',
   courtStart:'朝廷兵力开局',courtGrowth:'朝廷兵力年增长',warChance:'每年朝廷打仗概率',warLossMin:'打仗损兵最少%',warLossMax:'打仗损兵最多%',warRecover:'战后每月恢复%',
   recruitMin:'投奔民心门槛',recruitOffset:'投奔民心偏移',recruitMul:'投奔倍率(再×人口)',desertBelow:'逃散民心线',desertRate:'逃散比例',
   suspPerRatio:'兵力比每几%月猜忌+1',bribeBase:'打点基础价',bribePerRatio:'兵力比每1%打点加价',bribeCap:'打点价上限(×帝业倍率)',bribeDrop:'打点降猜忌',
@@ -53,16 +53,16 @@ const RANK_REQ={
   2:{wen:100,wu:100,silver:400,minxin:35,realm:3},
   3:{wen:700,wu:700,silver:1000,minxin:40,realm:7},
   4:{wen:2400,wu:2400,silver:2400,minxin:45,realm:14},
-  5:{wen:3500,wu:3500,silver:3300,minxin:50,realm:15},
-  6:{wen:5850,wu:5850,silver:4500,minxin:55,realm:17},
-  7:{wenA:7300,wuA:8150,wenB:8150,wuB:7300,silver:5200,silverB:6200,minxin:50,realm:18,a:20,b:55},
-  8:{wenA:8650,wuA:9700,wenB:9700,wuB:8650,silver:6000,silverB:7200,minxin:50,realm:19,a:30,b:60},
-  9:{wenA:9700,wuA:10700,wenB:10700,wuB:9700,silver:6200,silverB:7400,minxin:55,realm:21,a:40,b:65},
-  10:{wenA:10700,wuA:11900,wenB:11900,wuB:10700,silver:6800,silverB:8200,minxin:55,realm:22,a:45,b:65}};
+  5:{wen:3850,wu:3850,silver:5300,minxin:50,realm:15},
+  6:{wen:6750,wu:6750,silver:9000,minxin:55,realm:17},
+  7:{wenA:8750,wuA:9800,wenB:9800,wuB:8750,silver:10400,silverB:12400,minxin:50,realm:18,a:20,b:55},
+  8:{wenA:11700,wuA:13050,wenB:13050,wuB:11700,silver:12000,silverB:14400,minxin:50,realm:19,a:30,b:60},
+  9:{wenA:14050,wuA:15550,wenB:15550,wuB:14050,silver:12400,silverB:14800,minxin:55,realm:21,a:40,b:65},
+  10:{wenA:16600,wuA:18450,wenB:18450,wuB:16600,silver:13600,silverB:16400,minxin:55,realm:22,a:45,b:65}};
 /* 大境界修为倍率（闭关、吐纳、事件里的修为都乘这个） */
 const REALM_MUL=[1,1,3,10,30,30,100,100];   // 练气 筑基 金丹 元婴 化神 炼虚 合体 大乘
 /* 每个小境界需要的修为 */
-const XIU_NEED=[0,200,400,440,530,620,730,860,940,1000,1300,1400,1500,1700,4600,7500,12000,17000,62000,100000,160000,210000,120000,120000,180000,180000,270000,270000,390000,390000,370000,370000,550000,550000,740000,740000,1000000,1000000];
+const XIU_NEED=[0,200,400,440,530,620,730,860,940,1000,1300,1400,1500,1700,4600,7500,12000,17000,62000,100000,160000,210000,162000,162000,243000,243000,365000,365000,527000,527000,499000,499000,743000,743000,999000,999000,1350000,1350000];
 
 /* 跳过随机事件的惩罚（按事件类别）。某个任务想单独设置，就在任务里写 skipEff:{...}。 */
 const SKIP_PENALTY={治理:{minxin:-2},军务:{train:-3},游历:{xinmo:2},修行:{xinmo:2},后宅:{harmony:-3},突发:{minxin:-2},朝廷:{suspicion:4},
@@ -70,8 +70,8 @@ const SKIP_PENALTY={治理:{minxin:-2},军务:{train:-3},游历:{xinmo:2},修行
 
 /* 立绘图片路径。以后每个角色有自己的立绘时再改。 */
 /* 选项属性要求：基准 = max(按帝业阶位, 按大境界)，再加难度档（易/中/难）。 */
-const REQ_RANK=[0,20,23,26,31,35,39,44,48,52,58];
-const REQ_MAJOR=[0,0,0,0,58,58,74,74];
+const REQ_RANK=[0,20,23,26,31,37,44,50,54,59,65];
+const REQ_MAJOR=[0,0,0,0,63,63,81,81];
 const REQ_LV=[0,-5,0,8];
 const PORTRAIT='images/wangye.jpg';
 /* 换过图片后把这个数字加 1，玩家的浏览器才会重新下载新图 */

@@ -41,6 +41,11 @@ async function ghAuth(name,pin,create,fresh){
   else if(u.ph!==ph)throw new GhErr('pin');
   ghUser={uk,path,u,created};return ghUser}
 const ghSavePath=(u,slot)=>`saves/${u.id}_${slot}.json`;
+/* 删存档或在同一个存档位开新局时，旧的那一局不删，存成一个不带用户 ID 的匿名文件，留作平衡参考 */
+async function ghArchive(path){const t=await ghGet(path);if(!t)return;const d=new Date(),p2=n=>String(n).padStart(2,'0');
+  const ts=`${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
+  await ghPut(`saves/arch_${ts}_${Math.random().toString(36).slice(2,8)}.json`,t,'archive')}
+const gidOf=data=>{const m=/"gid":"([^"]+)"/.exec(data);return m?m[1]:''};
 
 /* cloud.js 调用的接口：login / load / save / del */
 async function cloudApi(op,extra){
@@ -52,19 +57,21 @@ async function cloudApi(op,extra){
     if(slot<0||slot>=CLOUD_SLOTS)return {ok:false,err:'input'};
     if(op==='load'){const d=await ghGet(ghSavePath(a.u,slot));return {ok:true,data:d,meta:a.u.slots[slot]}}
     if(op==='save'){const data=String(extra.data||'');if(data.length>900000)return {ok:false,err:'size'};
-      const at=Date.now();await ghPut(ghSavePath(a.u,slot),data,'save');
-      a.u.slots[slot]={brief:String(extra.brief||'').slice(0,80),savedAt:at};
+      const at=Date.now(),gid=gidOf(data),old=a.u.slots[slot];
+      if(old&&old.gid&&gid&&old.gid!==gid)await ghArchive(ghSavePath(a.u,slot));   // 这个存档位换了一局：先把旧的存成匿名文件
+      await ghPut(ghSavePath(a.u,slot),data,'save');
+      a.u.slots[slot]={brief:String(extra.brief||'').slice(0,80),savedAt:at,gid};
       /* 成就与数据：和云端已有的合并，每项取较大值 */
       if(extra.meta)a.u.meta=typeof metaMerge==='function'?metaMerge(extra.meta,a.u.meta):extra.meta;
      await ghPut(a.path,JSON.stringify(a.u),'slots');
       return {ok:true,savedAt:at}}
-    if(op==='del'){await ghDel(ghSavePath(a.u,slot));a.u.slots[slot]=null;await ghPut(a.path,JSON.stringify(a.u),'del slot');return {ok:true,slots:a.u.slots}}
+    if(op==='del'){await ghArchive(ghSavePath(a.u,slot));await ghDel(ghSavePath(a.u,slot));a.u.slots[slot]=null;await ghPut(a.path,JSON.stringify(a.u),'del slot');return {ok:true,slots:a.u.slots}}
     return {ok:false,err:'input'};
   }catch(e){return {ok:false,err:e&&e.code||'net'}}
 }
 /* 关页面前补传：只写存档文件本身（用 keepalive，页面关了请求也会发出去） */
 function cloudBeacon(){
   if(!cloudOn()||!S||!cloudCan()||!ghUser)return;const data=JSON.stringify(S);if(data===cloudPushed)return;
-  const p=ghSavePath(ghUser.u,SLOT);if(!ghShas[p])return;
+  const p=ghSavePath(ghUser.u,SLOT);if(!ghShas[p])return;const os=ghUser.u.slots[SLOT];if(os&&os.gid&&S.gid&&os.gid!==S.gid)return;   // 换了一局的第一次上传要走正常流程（先存档旧局）
   try{ghReq('PUT',p,{message:'save',content:ghB64e(data),sha:ghShas[p]},true).catch(()=>{});cloudPushed=data}catch(e){}
 }

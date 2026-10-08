@@ -9,7 +9,8 @@ let S=LS.get('xw_save'); let oldSave=false; if(S&&S.v!==SAVE_V){S=null;oldSave=t
 const _rnd=Math.random;
 Math.random=function(){if(typeof S!=='undefined'&&S&&typeof S.rs==='number'){let x=S.rs|0;x^=x<<13;x^=x>>>17;x^=x<<5;S.rs=x|0||1;return (x>>>0)/4294967296}return _rnd()};
 if(S&&typeof S.rs!=='number')S.rs=Math.floor(_rnd()*2147483646)+1;
-function migrate(o){if(!o||o.v!==SAVE_V)return null;upgradeRealm(o);o.exp=o.exp||{};if(typeof o.rs!=='number')o.rs=(Math.floor(_rnd()*2147483646)+1);(o.partners||[]).forEach(p=>{if(!p.img)p.img=pickImg(p.g,o);if(p.prefs&&p.prefs.length>1)p.prefs=p.prefs.slice(0,1);delete p.taboo});return o}
+const newGid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);   // 每局一个局号（区分是不是换了一局）
+function migrate(o){if(!o||o.v!==SAVE_V)return null;upgradeRealm(o);if(!o.gid)o.gid=newGid();if(!o.dl){o.dl=1;if(o.chap>=1&&o.chap<=16)o.dueMin=Math.max(CH_DEF[o.chap].due,Math.floor(((o.chapMi||1)+10)/12)+1)}o.exp=o.exp||{};if(typeof o.rs!=='number')o.rs=(Math.floor(_rnd()*2147483646)+1);(o.partners||[]).forEach(p=>{if(!p.img)p.img=pickImg(p.g,o);if(p.prefs&&p.prefs.length>1)p.prefs=p.prefs.slice(0,1);delete p.taboo});return o}
 let backTo='', queue=[], view='game', tab='play', title=true, titleSub='', titleMsg='', gmResetArm=false, restartArm=false, fileMsg='';
 function download(name,obj){const b=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 function loadFile(input){const f=input.files[0];if(!f)return;const kind=input.dataset.file;const r=new FileReader();
@@ -156,7 +157,7 @@ const scaleDiff=d=>Math.round(d*diffMul());
    奖励选项都有属性要求：属性（含加成）达到就能选，选了必定拿到奖励；达不到就灰掉，只能选惩罚选项。
    要求 = 基准（按帝业阶位与大境界取高者）+ 难度档（易 −5 / 中 0 / 难 +8）。 */
 const reqBase=()=>Math.max(REQ_RANK[Math.min(S.rank,10)]||18,REQ_MAJOR[majorOf(Math.min(S.realm,R_TOP))]||0);
-function reqOf(c,ctx){if(!c)return 0;const off=c.lv?REQ_LV[c.lv]:Math.round(((c.difficulty||28)-28)*0.6);const v=clamp(reqBase()+off+(c.plus||0)+((typeof ATTR_REQ_ADJ!=='undefined'&&ATTR_REQ_ADJ[c.attr])||0),5,100);return Math.min(v,attrCap())}/* 要求不超过当前境界的属性上限：不然练满也过不了 */
+function reqOf(c,ctx){if(!c)return 0;const off=c.lv?REQ_LV[c.lv]:Math.round(((c.difficulty||28)-28)*0.6);const v=clamp(reqBase()+off+(c.plus||0)+(ctx&&ctx.promo&&S.rank>=4?CFG.promoReqPlus:0)+((typeof ATTR_REQ_ADJ!=='undefined'&&ATTR_REQ_ADJ[c.attr])||0),5,100);return Math.min(v,attrCap())}/* 要求不超过当前境界的属性上限：不然练满也过不了 */
 function bonusOf(o){const b=o.check&&o.check.bonus;return b==='troops'?Math.min(15,Math.floor(ratio()/2)):(b||0)}
 const meets=(o,ctx)=>!o.check||S.attr[o.check.attr]+bonusOf(o)+((ctx&&ctx.bonus)||0)>=reqOf(o.check,ctx);
 function needTxt(attr,need,bonus){const v=S.attr[attr];const cap=attrCap();
@@ -386,6 +387,7 @@ function promoNeed(r){const q=RANK_REQ[r];if(!q)return null;
 const actsSince=d=>(S.stat[d]||0)-((S.statP&&S.statP[d])||0);
 function promoReady(r){const q=promoNeed(r);if(!q)return false;
   return S.wengong>=q.wen&&S.wugong>=q.wu&&S.silver>=q.silver&&S.minxin>=q.minxin&&S.realm>=q.realm&&(q.ratio==null||ratio()>=q.ratio)&&actsSince('治理')>=q.acts&&actsSince('军务')>=q.acts}
+const promoBribe=r=>Math.round((RANK_REQ[r]?RANK_REQ[r].silver:0)*CFG.promoBribeRate/100/50)*50;
 function startPromo(r){
   const P=PROMO2[promoKey(r)];let wins=0;const n=P.steps.length;
   const steps=P.steps.map((st,i)=>({tag:`晋升 ${i+1}/${n}`,title:P.name,text:st.text,options:buildOpts(st.opts.filter(o=>o.check),{promo:1},o=>{
@@ -393,6 +395,10 @@ function startPromo(r){
     if(i===n-1)queue.unshift(promoEnd(r,wins));
     result(P.name,o._auto?st.lose+(res.text?'\n'+res.text:''):(res.text?res.text+'\n':'')+st.win);
   },st.loseEff||{})}));
+  /* 打点：某一关属性不够时，花银两疏通，这一关算过关；每次晋升限一次 */
+  let bribed=0;const bc=promoBribe(r);
+  steps.forEach((sc,i)=>sc.options.splice(sc.options.length-1,0,{label:'花钱打点，算作过关',get hint(){return bribed?'这次晋升已经打点过一次了':`银两 −${fmt(bc)}（现有 ${fmt(S.silver)}）；这一关算过关，每次晋升限一次`},get disabled(){return bribed||S.silver<bc},
+    run(){askPay({title:'花钱打点？',text:'上下打点一番，这一关就算过了。',cost:bc,yes:'打点',back:()=>queue.unshift(sc),run(){bribed=1;S.silver-=bc;wins++;ev('promoBribe');logAdd('晋升打点');if(i===n-1)queue.unshift(promoEnd(r,wins));result(P.name,`银两 −${fmt(bc)}。该打点的都打点到了，这一关有惊无险。\n`+P.steps[i].win)}})}}));
   queue.push({tag:'晋升大事件',bg:bgOfOpts(P.steps[0]&&P.steps[0].opts),title:`晋升契机：${P.name}`,text:P.intro+`\n\n（共 ${n} 关，过 ${n-1} 关即可晋升「${rankName(r)}」。每关属性达标就能过，不达标只能勉强应付，这一关算失利。晋升成功将花费文功 ${fmt(promoNeed(r).wen)}、武功 ${fmt(promoNeed(r).wu)}、银两 ${fmt(promoNeed(r).silver)}。）\n\n晋升之后，事件的要求会更高，更难应付。`+(CH_PROMO[S.chap]===r&&!CH_DEF[S.chap].done()&&!S.acc?(chLeft()>2?`\n阶段期限：第 ${chDue()} 年腊月底，${chLeftTxt()}。条件已经提前达成，可以现在晋升；也可以先继续准备（练属性、攒银两、补守卫），准备好了再到「帝业」页上表，只要在期限前晋升就行。`:`\n阶段期限：第 ${chDue()} 年腊月底，${chLeftTxt()}。期限快到了，建议尽快晋升。`):''),options:[
     {label:'现在晋升',get hint(){const q=promoNeed(r);return promoReady(r)?`先把晋升花费押上：文功 −${fmt(q.wen)}，武功 −${fmt(q.wu)}，银两 −${fmt(q.silver)}；失利会退回`:'晋升条件已经不够了（刚才有花销），这次只能放过'},get disabled(){return !promoReady(r)},run(){const q=promoNeed(r);S.promoHold={wen:q.wen,wu:q.wu,silver:q.silver};S.wengong-=q.wen;S.wugong-=q.wu;S.silver-=q.silver;queue.unshift(...steps)}},
     {label:'先做准备，稍后再上表',get hint(){return '不再自动提醒；准备好了到「帝业」页点「上表求晋升」'+(CH_PROMO[S.chap]===r&&chLeft()<=2?'；期限快到了，别拖过期限':'')},run(){S.promoPause=true;logAdd('暂缓晋升')}}]});
@@ -581,18 +587,18 @@ const CH_DEF=[null,
  {done:()=>S.rank>=2,prog:()=>promoProg(2),due:3},
  {done:()=>S.rank>=3,prog:()=>promoProg(3),due:6},
  {done:()=>S.realm>=14,prog:()=>`${realmName(S.realm)}；金丹需要${rankGap(3)}、功德 ${meritNeed('jindan')}`,due:8},
- {done:()=>S.rank>=4,prog:()=>promoProg(4),due:10},
- {done:()=>S.rank>=5,prog:()=>promoProg(5),due:12},
- {done:()=>S.rank>=6&&!!S.route,prog:()=>promoProg(6),due:16},
- {done:()=>S.realm>=18,prog:()=>`${realmName(S.realm)}；元婴需要${rankGap(6)}、功德 ${meritNeed('yuanying')}`,due:17},
- {done:()=>S.rank>=7,prog:()=>promoProg(7),due:22},
- {done:()=>S.rank>=8,prog:()=>promoProg(8),due:26},
- {done:()=>S.rank>=9,prog:()=>promoProg(9),due:33},
- {done:()=>S.realm>=22,prog:()=>`${realmName(S.realm)}；化神需要${rankGap(9)}、功德 ${meritNeed('huashen')}`,due:34},
- {done:()=>S.rank>=10,prog:()=>promoProg(10),due:41},
- {done:()=>S.realm>=30,prog:()=>`${realmName(S.realm)}；合体需要登基、功德 ${meritNeed('heti')}`,due:42},
- {done:()=>S.realm>=R_FEI||(S.realm>=R_TOP&&S.xiuwei>=xiuNeed(R_TOP)),prog:()=>`${realmName(Math.min(S.realm,R_TOP))}，修为 ${fmt(S.xiuwei)}/${fmt(xiuNeed(Math.min(S.realm,R_TOP)))}`,due:50},
- {done:()=>S.realm>=R_FEI,prog:()=>`飞升需要功德 ${meritNeed('feisheng')}，心魔低于 ${CFG.xinmoNoBreak}`,due:52}];
+ {done:()=>S.rank>=4,prog:()=>promoProg(4),due:10,len:2},
+ {done:()=>S.rank>=5,prog:()=>promoProg(5),due:12,len:5},
+ {done:()=>S.rank>=6&&!!S.route,prog:()=>promoProg(6),due:16,len:5},
+ {done:()=>S.realm>=18,prog:()=>`${realmName(S.realm)}；元婴需要${rankGap(6)}、功德 ${meritNeed('yuanying')}`,due:17,len:2},
+ {done:()=>S.rank>=7,prog:()=>promoProg(7),due:22,len:6},
+ {done:()=>S.rank>=8,prog:()=>promoProg(8),due:26,len:6},
+ {done:()=>S.rank>=9,prog:()=>promoProg(9),due:33,len:5},
+ {done:()=>S.realm>=22,prog:()=>`${realmName(S.realm)}；化神需要${rankGap(9)}、功德 ${meritNeed('huashen')}`,due:34,len:2},
+ {done:()=>S.rank>=10,prog:()=>promoProg(10),due:41,len:7},
+ {done:()=>S.realm>=30,prog:()=>`${realmName(S.realm)}；合体需要登基、功德 ${meritNeed('heti')}`,due:42,len:7},
+ {done:()=>S.realm>=R_FEI||(S.realm>=R_TOP&&S.xiuwei>=xiuNeed(R_TOP)),prog:()=>`${realmName(Math.min(S.realm,R_TOP))}，修为 ${fmt(S.xiuwei)}/${fmt(xiuNeed(Math.min(S.realm,R_TOP)))}`,due:50,len:10},
+ {done:()=>S.realm>=R_FEI,prog:()=>`飞升需要功德 ${meritNeed('feisheng')}，心魔低于 ${CFG.xinmoNoBreak}`,due:52,len:2}];
 /* 阶段进度拆成一项一项：完成的绿色打勾 */
 function chapItems(n){const it=[];const add=(t,done,pct)=>it.push({t,done:!!done,pct:done?1:Math.max(0,Math.min(0.99,pct||0))});
   const promoCh={2:2,3:3,5:4,6:5,7:6,9:7,10:8,11:9,13:10};const realmCh={4:[13,3,'jindan'],8:[17,6,'yuanying'],12:[21,9,'huashen'],14:[29,10,'heti']};
@@ -617,7 +623,7 @@ function promoProg(r){const q=promoNeed(r);if(!q)return '';const L=[`文功 ${fm
 const chap=()=>CHAPTERS[CH_ORDER[S.chap]-1];
 function chapterCheck(){
   while(S.chap<=16&&CH_DEF[S.chap].done()){const c=chap();const rw=CH_REWARD[S.chap];const s=Object.keys(rw).length?apply(rw):'';
-    logAdd(`阶段目标「${c.name}」完成`);S.chap++;S.chapMi=mi();S.accGrace=0;
+    logAdd(`阶段目标「${c.name}」完成`);S.chap++;S.chapMi=mi();S.accGrace=0;S.dueMin=0;
     if(S.acc){logAdd('补齐目标，问责解除');queue.push({who:me(),tag:'问责解除',title:'问责解除',text:`你在期限内完成了阶段目标「${c.name}」，朝廷的问责到此为止。已经受的惩罚不会退回。`,options:[{label:'继续',run(){}}]});S.acc=null}
     if(S.chap>16)return;const nx=chap();
     queue.push({who:me(),tag:'阶段完成',title:`阶段完成：${c.name}`,text:`${c.done}${s?`\n（${s}）`:''}\n\n下一阶段：「${nx.name}」（${S.chap}/16）\n${nx.intro}\n\n期限：第 ${chDue()} 年腊月底（${chLeftTxt()}）。到期没完成会被问责，问责后只有 2 个月补救，补不上惩罚升级，连续三级补不上游戏结束。`,options:[{label:'继续',run(){}}]});}
@@ -626,7 +632,10 @@ function chapterCheck(){
 /* 离阶段期限还剩几个月（含本月） */
 const chLeft=()=>(chDue()-1)*12+12-mi()+1;
 const chLeftTxt=()=>{const n=chLeft();return n<=1?'本月底到期':`还剩 ${n} 个月`};
-const chDue=()=>S.chap>16?99:Math.max(CH_DEF[S.chap].due,Math.floor(((S.chapMi||1)+10)/12)+1);
+/* 第1~4阶段：固定期限（第几年腊月底）。第5阶段起：从阶段开始那个月算，给 len 年，到那一年腊月底；提前做完不会把富余攒到后面 */
+const chDue=()=>{if(S.chap>16)return 99;const d=CH_DEF[S.chap],m0=S.chapMi||1;
+  if(!d.len)return Math.max(d.due,Math.floor((m0+10)/12)+1);
+  return Math.max(Math.floor((m0-1+d.len*12)/12)+1,S.dueMin||0)};
 const ACC=[null,
  {name:'朝廷申饬',txt:'猜忌 +15，心魔 +5，银两 −10%',run(){S.suspicion=clamp(S.suspicion+15,0,100);S.xinmo=clamp(S.xinmo+5,0,100);S.silver=Math.round(S.silver*0.9)}},
  {name:'削减封地',txt:'产业收入减半，民心 −10，猜忌 +20，心魔 +10',run(){S.industry=Math.floor(S.industry/2);S.minxin=clamp(S.minxin-10,0,100);S.suspicion=clamp(S.suspicion+20,0,100);S.xinmo=clamp(S.xinmo+10,0,100)}},
@@ -886,7 +895,7 @@ const bribeBaseCost=()=>Math.round(Math.min(CFG.bribeCap*rankMul(),CFG.bribeBase
 const bribeCost=()=>bribeBaseCost()*(S.bribeMi===mi()?2:1);
 
 function newGame(name,g){
-  S={v:SAVE_V,rs:Math.floor(_rnd()*2147483646)+1,exp:{},chapMi:1,name,gender:g,year:1,month:1,phase:'start',ap:0,attr:{},realm:1,rv:2,rank:1,route:null,chap:1,xiuwei:0,wengong:0,wugong:0,merit:0,xinmo:0,
+  S={v:SAVE_V,rs:Math.floor(_rnd()*2147483646)+1,exp:{},chapMi:1,name,gender:g,year:1,month:1,phase:'start',ap:0,attr:{},realm:1,rv:2,dl:1,gid:newGid(),rank:1,route:null,chap:1,xiuwei:0,wengong:0,wugong:0,merit:0,xinmo:0,
     minxin:CFG.startMinxin,silver:CFG.startSilver,troops:CFG.startTroops,train:20,suspicion:CFG.startSuspicion,harmony:CFG.startHarmony,
     court:CFG.courtStart,courtBase:CFG.courtStart,warMonth:0,
     pill:0,injured:0,accept:true,partners:[],prisoners:[],metT:{},cd:{},done:{},chains:[],promoCD:0,lowMinxin:0,log:[],over:null,
