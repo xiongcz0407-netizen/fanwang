@@ -533,7 +533,7 @@ function prisonerScene(a,again){
       if(k==='silver')e.silver=300;else if(k==='xiu')e.xiuwei=Math.round(CFG.retreatBase*3*lingMul());else{S.intel=1;x='，得到刺客组织的情报：下次刺杀要求 −10'}
       const sum=apply(e);logAdd(`严刑逼供刺客${a.name}`);S.revenge={name:a.name,g:a.g,img:a.img,type:a.type,cm:a.cm,next:mi()+1,left:CFG.revengeMonths};
       result('严刑逼供',`刑房里的灯亮了三天三夜。${a.name}最后什么都说了。\n第四天清晨，牢门大开，人不见了，墙上用血写着一个字：等。\n（${sum}${x}，以后的刺客难度 +3；${a.name}逃走了，下个月起会来报复）`)}}]),
-    {label:'收为己用',get hint(){return `${cmTxt(a)}，${a.type||'武'}类；`+'防刺客永久 +5，可以培养好感；好感太低会反水，成亲后心结未解会设法出逃'+(full?`；后宅已满，要先遣散一位`:'')},run(){
+    {label:'收为己用',get hint(){return `${cmTxt(a)}，${a.type||'武'}类；`+'防刺客永久 +5；好感太低会反水，成亲后心结未解会出逃'+(full?`；后宅已满，要先遣散一位`:'')},run(){
       const p=makePartner(null,a);p.met=true;p.aff=10;p.cm=a.cm!=null?a.cm:rollCm(CFG.assassinCmHigh,CFG.assassinCmMid);a.cm=p.cm;
       const add=()=>{S.partners.push(p);S.bodyguard=Math.min(10,(S.bodyguard||0)+5);logAdd(`收服刺客${a.name}`);return `${a.name}沉默良久，终于跪下：「这条命，以后是殿下的。」\n（防刺客加成永久 +5，${a.name}好感 10）`};
       if(full){queue.unshift(replaceScene(p,`${a.name}愿意归顺。`,add,{label:'算了',hint:'不收服，回去重新处置',run(){queue.unshift(prisonerScene(a,again))}}));return}
@@ -763,7 +763,7 @@ function visit(p,pos){
   const n=talkLeft(p),opts=[];const again=()=>{if(talkLeft(p)>0)visit(p,1)};
   if(n>0){
     if(p.married){const done=p.dual===mi(),m=dualMulOf(p)*CFG.dualRewardMul;
-      opts.push({label:'双修',cls:'dual',hint:done?`这个月已经和${p.name}双修过了`:`随机得到一份奖励，多是${p.type==='武'?'修为、武功、防刺客、疗伤':'银两、文功、功德、降猜忌'}一类；好感越深、才貌越出众，收获越好${isAssassin(p)?'。刺客出身，奖励更大，有时还会替你除掉政敌':''}`,disabled:done,
+      opts.push({label:'双修',cls:'dual',hint:done?`这个月已经和${p.name}双修过了`:`随机奖励，多是${p.type==='武'?'修为、武功、防刺客、疗伤':'银两、文功、功德、降猜忌'}；好感越深、才貌越高，收获越好${isAssassin(p)?'；刺客出身奖励更大，偶尔替你除掉政敌':''}`,disabled:done,
         run(){ev('dual');useTalk(p);p.dual=mi();const d=dualDraw(p);result('双修',d.sum?`${d.t}\n（${d.sum}）`:d.t,p,true);again()}})}
     /* 相处：每人只有一样最喜欢的（固定 +affLike）；其他的每次要么 affRandHi（几率 affUpP）、要么 affRandLo；每次给 3 个，最喜欢的有 favShow 的几率在里面 */
     if(p.aff<100){const fav=p.prefs[0],hi=isAssassin(p)?CFG.assassinRandHi:CFG.affRandHi,lo=CFG.affRandLo;

@@ -83,7 +83,7 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .dialog h2{font-family:var(--title);font-weight:400;font-size:19px;margin:0 0 2px;line-height:1.35}
 .dialog p{margin:0;white-space:pre-wrap;font-size:14.5px}
 .choices{background:var(--paper);padding:6px 12px 10px;display:flex;flex-direction:column;gap:6px;max-height:clamp(120px,40vh,380px);overflow:auto}
-.opt{text-align:left;background:var(--bg);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:6px;padding:7px 11px;font-size:14.5px;cursor:pointer;line-height:1.45;width:100%;min-height:calc(1.45em + 33.4px)}
+.opt{flex-shrink:0;text-align:left;background:var(--bg);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:6px;padding:7px 11px;font-size:14.5px;cursor:pointer;line-height:1.45;width:100%;min-height:calc(1.45em + 33.4px)}
 .opt:hover:not(:disabled){border-color:var(--gold)}
 .opt:disabled{opacity:.45;cursor:not-allowed}
 .opt small{display:block;color:var(--muted);font-size:12px}
