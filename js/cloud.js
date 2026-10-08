@@ -1,4 +1,4 @@
-const APP_V=104;   // 打包时写入的版本号
+const APP_V=105;   // 打包时写入的版本号
 /* ================= 云端存档 =================
    用户名 + 6 位口令登录，每个用户 3 个存档位，存档放在 GitHub 私有仓库里（读写接口见 ghsave.js，它会替换下面的 cloudApi / cloudBeacon）。
    本机仍然保留一份当前存档（xw_save），断网时照常玩，联网后下次保存会自动补传。
@@ -202,12 +202,15 @@ document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const id=e.tar
   if(typeof CHANGELOG==='undefined'||!appV())return;
   const all=[];CHANGELOG.forEach(d=>d.items.forEach(t=>all.push(t)));
   const seenV=LS.get('xw_seenv'),seen=LS.get('xw_seenlog');
-  const mark=()=>{LS.set('xw_seenv',appV());LS.set('xw_seenlog',all)};
+  /* 只看上次打开时最新那一天及以后的条目：旧日期里改了字的条目不会被当成新内容 */
+  const newest=CHANGELOG[0]?CHANGELOG[0].date:'',seenD=LS.get('xw_seendate');
+  const dIdx=seenD?CHANGELOG.findIndex(d=>d.date===seenD):0;const recent=[];CHANGELOG.slice(0,dIdx<0?1:dIdx+1).forEach(d=>d.items.forEach(t=>recent.push(t)));
+  const mark=()=>{LS.set('xw_seenv',appV());LS.set('xw_seenlog',all);LS.set('xw_seendate',newest)};
   let fresh;
   if(seenV==null||!Array.isArray(seen)){
     if(!(LS.get('xw_acct')||LS.get('xw_save'))){mark();return}     // 第一次玩：记下当前内容，不弹
     fresh=CHANGELOG[0]?CHANGELOG[0].items.slice():[];              // 以前玩过、这是第一个带弹窗的版本：给看最近一天的
-  }else{if(appV()<=seenV)return;const has=new Set(seen);fresh=all.filter(t=>!has.has(t))}
+  }else{if(appV()<=seenV)return;const has=new Set(seen);fresh=recent.filter(t=>!has.has(t))}
   mark();
   let man=false;try{man=sessionStorage.getItem('xw_updman')==='1';sessionStorage.removeItem('xw_updman')}catch(e){}
   if(man&&!fresh.length)return;
