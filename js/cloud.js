@@ -122,7 +122,7 @@ document.addEventListener('click',autoCheck,true);
 const _renderBase=render;
 render=function(){_renderBase();
   if(newV&&!safeToUpd()){const st=$('#status');if(st&&!st.querySelector('.updbar')){if(!queue.length)updWarn=false;
-    st.insertAdjacentHTML('beforeend',`<button class="updbar${updWarn?' warn':''}" data-a="appUpd">${updWarn?'先处理完眼前的事，再点这里更新':`有新版本 ${verTxt(newV)}，点这里更新`}</button>`)}}};
+    st.insertAdjacentHTML('beforeend',`<button class="updbar${updWarn?' warn':''}" data-a="appUpd">${updWarn?'先处理完眼前的事，再点这里更新（进度不会丢失）':`有新版本 ${verTxt(newV)}，建议更新：点这里更新（进度不会丢失）`}</button>`)}}};
 const cloudFoot=()=>`<p class="lfoot">作者：小熊cz<span class="lver">版本 ${verTxt(appV())}</span></p>`;
 const cloudUpd=()=>newV?`<button class="opt lupd" data-a="appUpd"><b>发现新版本 ${verTxt(newV)}</b><small>点这里更新（当前 ${verTxt(appV())}），进度会先存到云端</small></button>`:'';
 const cloudHead=sub=>`<div class="lhead"><div class="lseal">藩</div><h2 class="ttl">藩王修仙录</h2><p class="lsub">${sub}</p></div>${cloudUpd()}`;
