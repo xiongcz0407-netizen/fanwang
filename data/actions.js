@@ -19,7 +19,7 @@ const ACTIONS={
   {id:'office',train:'wencai',label:'处理公务',text:'你把积压的公文批完，又理了一遍封地的账。',
    eff:()=>({wengong:20+Math.floor(S.attr.wencai/2)}),tip:'文才越高，文功越多'},
   {id:'industry',label:'发展产业',text:'你出资修了作坊和集市，商户们开始陆续进驻。',
-   cost:()=>({silver:Math.round(150*indPriceMul())}),eff:()=>({wengong:15,industry:15}),tip:()=>`现有 ${S.industry} 两；产业越多，再扩张越贵`}],
+   cost:()=>({silver:Math.round(150*indPriceMul())}),eff:()=>({wengong:15,industry:15}),tip:()=>'产业越多，再扩张越贵'}],
  军务:[
   {id:'drill',label:'操练私兵',text:'校场上喊杀声震天。',
    eff:()=>({train:5}),tip:'训练度越高，私兵越能打，剿匪、打仗、防刺客都有好处；不练会慢慢下降'},

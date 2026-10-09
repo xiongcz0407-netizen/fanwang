@@ -769,13 +769,14 @@ function visit(p,pos){
       opts.push({label:'双修',cls:'dual',hint:done?`这个月已经和${p.name}双修过了`:`随机奖励，多是${p.type==='武'?'修为、武功、防刺客、疗伤':'银两、文功、功德、降猜忌'}；好感越深、才貌越高，收获越好${isAssassin(p)?'；刺客出身奖励更大，偶尔替你除掉政敌':''}`,disabled:done,
         run(){ev('dual');useTalk(p);p.dual=mi();const d=dualDraw(p);result('双修',d.sum?`${d.t}\n（${d.sum}）`:d.t,p,true);again()}})}
     /* 相处：每人只有一样最喜欢的（固定 +affLike）；其他的每次要么 affRandHi（几率 affUpP）、要么 affRandLo；每次给 3 个，最喜欢的有 favShow 的几率在里面 */
-    if(p.aff<100){const fav=p.prefs[0],hi=isAssassin(p)?CFG.assassinRandHi:CFG.affRandHi,lo=CFG.affRandLo;
+    /* 成亲后不再相处，只能双修（双修本身好感 +3） */
+    if(!p.married&&p.aff<100){const fav=p.prefs[0],hi=isAssassin(p)?CFG.assassinRandHi:CFG.affRandHi,lo=CFG.affRandLo;
       const others=shuffle(ACTS.filter(x=>x!==fav));const list=Math.random()<CFG.favShow?shuffle([fav,...others.slice(0,2)]):others.slice(0,3);
       list.forEach(a=>{const k=p.known.includes(a),isFav=a===fav;
       opts.push({label:a,hint:k?(isFav?`好感 +${CFG.affLike}`:`好感 ${sg(lo)} 或 ${sg(hi)}`):'',run(){useTalk(p);const val=isFav?CFG.affLike:(Math.random()<CFG.affUpP?hi:lo);let t;
         if(isFav){t=`${p.name}眉眼都亮了，看得出很喜欢。`;S.harmony=clamp(S.harmony+1,0,100)}else if(val<0)t=`${p.name}脸色淡了下来，看得出没什么兴致。`;else t=`你与${p.name}${a}，相处融洽。`;
         if(!k)p.known.push(a);p.aff=clamp(p.aff+val,0,100);result(`与${p.name}${a}`,`${t}\n（好感 ${sg(val)}）`,p);again()}})})}
-    if(p.aff>=100)opts.push({label:'好感已满',hint:affFullTxt(p),disabled:true,run(){}});
+    if(!p.married&&p.aff>=100)opts.push({label:'好感已满',hint:affFullTxt(p),disabled:true,run(){}});
   }
   if(!p.married&&p.bondN>=2&&p.aff>=CFG.marryAff){const full=married().length>=cap();const price=brideCost(p),poor=S.silver<price;
     const wed=()=>{if(S.silver<price)return;S.silver-=price;p.married=true;p.marriedMi=mi();p.aff=clamp(p.aff+10,0,100);const others=married().length-1;if(others>0)S.harmony=clamp(S.harmony-5,0,100);
@@ -1013,7 +1014,7 @@ function roleHTML(){
 文功 ${fmt(S.wengong)}，武功 ${fmt(S.wugong)}（晋升时消耗）</p><div class="btns" style="margin-top:8px"><button class="small" data-a="tab" data-t="log">查看日志（${S.log.length} 条）</button></div></div></div>
   <h4 class="sub">属性（当前上限 ${attrCap()}）</h4><div class="chips">${Object.keys(ATTR).map(k=>ch(ATTR[k],S.attr[k]>=attrCap()?S.attr[k]+' 满':S.attr[k])).join('')}</div>
   <p class="note">属性靠做事培养，每项只由一件事负责：根骨←闭关修炼；悟性←参悟功法；文才←处理公务；心机←巡视民情；武略←剿匪巡境；魅力←结交名士。每次有概率 +1，属性越高越难涨；到当前上限后要突破大境界才能继续。事件的奖励选项要求属性达标。</p>
-  <h4 class="sub">资源</h4><div class="chips">${ch('功德',fmt(S.merit))}${ch('防刺客','+'+guardBonus())}${ch('心魔',S.xinmo,S.xinmo>=50)}${ch('民心',S.minxin,S.minxin<20)}${ch('银两',fmt(S.silver))}${ch('月收入',income())}${ch('月军饷',upkeep())}${ch('私兵',fmt(S.troops))}${ch('训练',S.train)}${ch('战力',fmt(power()))}${ch('朝廷兵力',fmt(S.court))}${ch('兵力比',ratio()+'%')}${ch('猜忌',S.suspicion,S.suspicion>=70)}${ch('后宅安宁',S.harmony,S.harmony<40)}${ch('负伤',S.injured?S.injured+'月':'无',S.injured)}</div>
+  <h4 class="sub">资源</h4><div class="chips">${ch('功德',fmt(S.merit))}${ch('防刺客','+'+guardBonus())}${ch('心魔',S.xinmo,S.xinmo>=50)}${ch('民心',S.minxin,S.minxin<20)}${ch('银两',fmt(S.silver))}${ch('月收入',income())}${ch('产业',S.industry)}${ch('月军饷',upkeep())}${ch('私兵',fmt(S.troops))}${ch('训练',S.train)}${ch('战力',fmt(power()))}${ch('朝廷兵力',fmt(S.court))}${ch('兵力比',ratio()+'%')}${ch('猜忌',S.suspicion,S.suspicion>=70)}${ch('后宅安宁',S.harmony,S.harmony<40)}${ch('负伤',S.injured?S.injured+'月':'无',S.injured)}</div>
   <p class="note">道侣上限 ${cap()} 位，已结 ${married().length} 位。
 每月行动力 ${CFG.apMonth} 点（负伤时 ${CFG.apInjured} 点）。
 事件选项：属性达标才能选奖励，达不到只能选惩罚。</p>

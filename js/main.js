@@ -13,7 +13,7 @@ document.addEventListener('click',e=>{
   if(a==='endmonth'){
     /* 后宅还有人本月没互动（道侣没双修/相处、结缘的还能相处）：先问一句 */
     const left=queue.length?[]:S.partners.filter(p=>talkLeft(p)>0);
-    if(left.length){const ls=left.map(p=>`· ${p.name}${p.married?'（道侣，本月还没双修或相处）':`（本月还能相处 ${talkLeft(p)} 次）`}`).join('\n');
+    if(left.length){const ls=left.map(p=>`· ${p.name}${p.married?'（道侣，本月还没双修）':`（本月还能相处 ${talkLeft(p)} 次）`}`).join('\n');
       queue.unshift({who:me(),tag:'结束本月',title:'结束本月？',text:`后宅还有人这个月没去看：\n${ls}\n\n要直接进入下个月吗？`,
         options:[{label:'去后宅',hint:'先去后宅看看',run(){doAction('后宅')}},{label:'进入下个月',hint:'这个月不去后宅了',run(){endMonth()}}]});tab='play';render();return}
     endMonth();tab='play';render();return}
