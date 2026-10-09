@@ -747,6 +747,8 @@ const marriedMonths=p=>{if(!p.married)return 0;if(p.marriedMi==null)p.marriedMi=
 const bondReady=p=>p.aff>=bondAff(p,p.bondN)&&!(isAssassin(p)&&p.bondN===2&&marriedMonths(p)<CFG.assassinBondMonths);
 const bondsOf=p=>p.tid==='assassin'?ASSASSIN_BONDS:PT.find(t=>t.id===p.tid).bonds;
 const stageOf=a=>a>=80?'生死相许':a>=60?'倾心':a>=30?'知己':'相识';
+/* 后宅和道侣页的显示顺序：好感高的在前（好感相同按入府先后） */
+const byAff=()=>S.partners.map((p,i)=>[p,i]).sort((a,b)=>b[0].aff-a[0].aff||a[1]-b[1]).map(x=>x[0]);
 const talkMax=p=>p.married?CFG.talkMarried:CFG.talkPerMonth;
 const talkLeft=p=>talkMax(p)-(p.talkMi===mi()?p.talkN:0);
 const useTalk=p=>{if(p.talkMi!==mi()){p.talkMi=mi();p.talkN=0}p.talkN++;p.lastVisit=mi()};
@@ -864,7 +866,7 @@ function doAction(d){
     const blk=S.xinmo>=CFG.xinmoStop;opts.push({label:'以功德悟道',hint:used?'这个月已经悟过了':full?'修为已积满，先突破':blk?'心魔过重，修为不涨':`花费 功德 ${mc}；修为 +${fmt(g)}；每月一次，不占行动力`,disabled:used||full||blk||S.merit<mc,
       run(){ev('mstudy');S.merit-=mc;S.mstudyMi=mi();const r=apply({xiuwei:Math.round(CFG.retreatBase*0.6*lingMul())});result('以功德悟道',`你把这些年的善缘一一回想，心境澄明，修为随之精进。\n（功德 −${mc}，${r}）`)}})}
   if(d==='修行'&&S.xiuwei>=xiuNeed(S.realm)&&S.realm<R_FEI){const b=breakInfo();opts.push({label:b.label,hint:b.hint+'；不占行动力',disabled:!b.ok,run:b.run})}
-  if(house)S.partners.forEach(p=>{const n=talkLeft(p);opts.push({label:`看望${p.name}`,img:p.img,hint:`${p.origin}·${p.type}类，${stageOf(p.aff)}（好感 ${p.aff}），才貌 ${p.cm==null?(p.cm=rollCm()):p.cm}·${cmTier(p)[2]}${p.married?'，已结为道侣':''}；本月还可互动 ${n} 次`,disabled:n<=0,run(){visit(p);houseEvent()}})});
+  if(house)byAff().forEach(p=>{const n=talkLeft(p);opts.push({label:`看望${p.name}`,img:p.img,hint:`${p.origin}·${p.type}类，${stageOf(p.aff)}（好感 ${p.aff}），才貌 ${p.cm==null?(p.cm=rollCm()):p.cm}·${cmTier(p)[2]}${p.married?'，已结为道侣':''}；本月还可互动 ${n} 次`,disabled:n<=0,run(){visit(p);houseEvent()}})});
   ACTIONS[d].filter(a=>!a.cond||a.cond()).forEach(a=>{const c=a.cost?a.cost():null;const full=a.id==='retreat'&&S.xiuwei>=xiuNeed(S.realm)*CFG.xiuBank;
     const used=house&&S.monthUsed&&S.monthUsed[a.id]===mi();
     const capped=a.id==='study'&&S.attr.wuxing>=attrCap();
@@ -1024,7 +1026,7 @@ function roleHTML(){
 }
 function ptnHTML(){
   if(!S.partners.length)return '<div class="page"><p class="note">还没有结识任何人。「游历 → 寻访机缘」有机会遇到有缘人，年末擒获的刺客也可以收为己用。</p></div>';
-  return `<div class="page"><p class="note">后宅 ${S.partners.length}/${CFG.knownMax} 人，道侣 ${married().length}/${cap()} 位。当前门第标准：才貌 ${cmStd()}（随帝业上涨）。</p>${S.partners.map(p=>{const kf=p.known.includes(p.prefs[0]);
+  return `<div class="page"><p class="note">后宅 ${S.partners.length}/${CFG.knownMax} 人，道侣 ${married().length}/${cap()} 位。当前门第标准：才貌 ${cmStd()}（随帝业上涨）。</p>${byAff().map(p=>{const kf=p.known.includes(p.prefs[0]);
     return `<div class="pcard">${portrait(p,false,true)}<div><h4>${esc(p.name)}</h4><div class="note" style="margin:0">${esc(p.origin)}，${p.type}类，${stageOf(p.aff)}（好感 ${p.aff}）${p.married?'，已结为道侣':''}
 ${cmTxt(p)}
 羁绊事件：${p.bondN}/${bondsOf(p).length}${p.bondN<bondsOf(p).length?`（感情再深一些会有新的故事${isAssassin(p)&&p.bondN===2?`；要结为道侣满 ${CFG.assassinBondMonths/12} 年`:''}）`:''}
