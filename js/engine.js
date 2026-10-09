@@ -1012,7 +1012,7 @@ function roleHTML(){
   return `<div class="page"><div class="prow">${portrait(me(),false,true)}<div><h3 class="ph">${esc(S.name)}</h3><p class="note">${realmName(rl)}，${rankName(S.rank)}
 修为 ${fmt(S.xiuwei)}/${fmt(need)}
 文功 ${fmt(S.wengong)}，武功 ${fmt(S.wugong)}（晋升时消耗）</p><div class="btns" style="margin-top:8px"><button class="small" data-a="tab" data-t="log">查看日志（${S.log.length} 条）</button></div></div></div>
-  <h4 class="sub">属性（当前上限 ${attrCap()}）</h4><div class="chips">${Object.keys(ATTR).map(k=>ch(ATTR[k],S.attr[k]>=attrCap()?S.attr[k]+' 满':S.attr[k])).join('')}</div>
+  <h4 class="sub">属性（当前上限 ${attrCap()}）</h4><div class="chips">${Object.keys(ATTR).map(k=>ch(ATTR[k],S.attr[k]>=attrCap()?S.attr[k]+' <span class="full">满</span>':S.attr[k])).join('')}</div>
   <p class="note">属性靠做事培养，每项只由一件事负责：根骨←闭关修炼；悟性←参悟功法；文才←处理公务；心机←巡视民情；武略←剿匪巡境；魅力←结交名士。每次有概率 +1，属性越高越难涨；到当前上限后要突破大境界才能继续。事件的奖励选项要求属性达标。</p>
   <h4 class="sub">资源</h4><div class="chips">${ch('功德',fmt(S.merit))}${ch('防刺客','+'+guardBonus())}${ch('心魔',S.xinmo,S.xinmo>=50)}${ch('民心',S.minxin,S.minxin<20)}${ch('银两',fmt(S.silver))}${ch('月收入',income())}${ch('产业',S.industry)}${ch('月军饷',upkeep())}${ch('私兵',fmt(S.troops))}${ch('训练',S.train)}${ch('战力',fmt(power()))}${ch('朝廷兵力',fmt(S.court))}${ch('兵力比',ratio()+'%')}${ch('猜忌',S.suspicion,S.suspicion>=70)}${ch('后宅安宁',S.harmony,S.harmony<40)}${ch('负伤',S.injured?S.injured+'月':'无',S.injured)}</div>
   <p class="note">道侣上限 ${cap()} 位，已结 ${married().length} 位。

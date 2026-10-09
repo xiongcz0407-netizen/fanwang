@@ -118,6 +118,7 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .chip{background:var(--soft);border-radius:6px;padding:2px 8px;font-size:13px;display:flex;justify-content:space-between;gap:6px}
 .chip b{font-weight:600}
 .chip.warn b{color:var(--cinnabar)}
+.chip .full{color:var(--cinnabar)}
 .log{margin:0;padding-left:20px;font-size:13.5px}
 .pcard{display:grid;grid-template-columns:64px 1fr;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
 .pcard:last-child{border-bottom:0}
