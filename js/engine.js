@@ -180,7 +180,7 @@ function apply(effRaw,ctx,noScale){
   for(let [k,v] of Object.entries(eff)){
     if(['_t','next','flag','meet','_note'].includes(k)||ATTR[k])continue;
     if(k==='aff'||k==='affA'||k==='affB'){const p=ctx&&(k==='aff'?ctx.p:k==='affA'?ctx.a:ctx.b);if(p){const a0=p.aff;p.aff=clamp(p.aff+v,0,100);if(p.aff!==a0)parts.push(`${p.name}好感 ${sg(p.aff-a0)}`)}continue}
-    if(k==='injured'){if(v>S.injured){S.injured=v;parts.push(`下月起负伤 ${v} 个月`)}continue}
+    if(k==='injured'){if(v>S.injured){if(useDan()){parts.push('服下护身丹，没有受伤');continue}S.injured=v;parts.push(`下月起负伤 ${v} 个月`)}continue}
     if(['xiuwei','wengong','wugong'].includes(k)&&v>0&&stop)continue;
     if((k==='wengong'||k==='wugong')&&v>0&&S.rank>=10){const m=Math.max(1,Math.round(v/CFG.overflowRate));S.merit+=m;parts.push(`功德 +${m}`);continue}
     if(k==='xiuwei'&&v>0&&S.xinmo>CFG.xinmoSlowFrom){const cut=Math.min(99,S.xinmo-CFG.xinmoSlowFrom);v=Math.round(v*(100-cut)/100)}
@@ -204,7 +204,7 @@ function effTxt(eff,ctx,noScale){const e0=noScale?eff:scaleEff(eff);const e={...
   for(const k of Object.keys(e))if(typeof e[k]==='number'&&e[k]<0&&!C100.includes(k)&&!['aff','affA','affB','injured'].includes(k)&&RES[k]){e[k]=Math.max(e[k],-(S[k]||0));if(!e[k])delete e[k]}
   if(e.guard>0){e.guard=Math.min(e.guard,CFG.guardMax-(S.guard||0));if(e.guard<=0)delete e.guard}
   return Object.entries(e).filter(([k,v])=>v!==0&&!['_t','next','flag','meet','_note'].includes(k)&&!ATTR[k]&&!(C100.includes(k)&&!(k==='suspicion'&&S.route==='a'&&S.rank>=7)&&((v>0&&(S[k]||0)>=100)||(v<0&&(S[k]||0)<=0))))
-  .map(([k,v])=>k==='suspicion'&&S.route==='a'&&S.rank>=7?`朝廷兵力 ${sg(Math.round(v*CFG.courtPerSusp*10)/10)}%`:(k==='wengong'||k==='wugong')&&v>0&&S.rank>=10?`功德 +${Math.max(1,Math.round(v/CFG.overflowRate))}`:k==='injured'?`下月起负伤 ${v} 个月`:(k==='aff'&&ctx&&ctx.p?ctx.p.name:k==='affA'&&ctx&&ctx.a?ctx.a.name:k==='affB'&&ctx&&ctx.b?ctx.b.name:'')+effName(k)+' '+sg(v)).join('，')}
+  .map(([k,v])=>k==='suspicion'&&S.route==='a'&&S.rank>=7?`朝廷兵力 ${sg(Math.round(v*CFG.courtPerSusp*10)/10)}%`:(k==='wengong'||k==='wugong')&&v>0&&S.rank>=10?`功德 +${Math.max(1,Math.round(v/CFG.overflowRate))}`:k==='injured'?`下月起负伤 ${v} 个月`+danTip():(k==='aff'&&ctx&&ctx.p?ctx.p.name:k==='affA'&&ctx&&ctx.a?ctx.a.name:k==='affB'&&ctx&&ctx.b?ctx.b.name:'')+effName(k)+' '+sg(v)).join('，')}
 const costTxt=c=>'花费 '+Object.entries(scaleEff(c)).map(([k,v])=>effName(k)+' '+v).join('，');
 const effOf0=o=>o.eff||o.success||{};
 /* 奖励随形势调整：某项已经满了（或为 0）、领了没用，就按价值换成眼下用得上的东西；惩罚碰到「已经没法更糟」也换成别的损失 */
@@ -452,11 +452,11 @@ function tribRun(key,hp,guard,xd,mod){
   const L=[(mod.flinch?`${mod.flinch.name}临到阵前，手却松开了。你只能独自扛这场劫。\n`:'')+(guard?`${guard.name}为你护法。`:'')+`初始护体 ${hp}。`+(S.zhen?'道侣布下的阵法替你分去了一部分雷威（根骨要求各 −5）。':'')];let failed=0;S.zhen=0;
   ds.forEach((d,i)=>{if(S.attr.gengu>=d){hp-=10;L.push(`${T.rounds[i]}\n→ 这道天雷要根骨 ${d}，你 ${S.attr.gengu}，挡下了，护体 −10。`)}
     else{hp-=hit;failed++;L.push(`${T.rounds[i]}\n→ 这道天雷要根骨 ${d}，你 ${S.attr.gengu}，没挡住，护体 −${hit}。`)}});
-  const fall=()=>{S.injured=3;S.realm=Math.max(1,S.realm-1);S.xiuwei=0};
+  const fall=()=>{const d=useDan();if(!d)S.injured=3;S.realm=Math.max(1,S.realm-1);S.xiuwei=0;return d?'服下护身丹，没有受伤':'重伤三月'};
   if(hp<=0){if(S.xinmo>60){ev('trib',{ok:false});gameOver('渡劫陨落','护体尽碎，心魔趁虚而入。你没能走出这场劫。');return}
-    ev('trib',{ok:false});fall();L.push(`护体破碎。${T.fail}（跌回${realmName(S.realm)}，重伤三月）`);logAdd(`${T.name}失败`);result('渡劫失败',L.join('\n\n'));return}
+    ev('trib',{ok:false});const ft=fall();L.push(`护体破碎。${T.fail}（跌回${realmName(S.realm)}，${ft}）`);logAdd(`${T.name}失败`);result('渡劫失败',L.join('\n\n'));return}
   const xok=S.attr.wuxing>=xd;L.push(`${T.xinmo}\n→ 第四关悟道：悟性 ${S.attr.wuxing}${xok?' ≥ ':' < '}${xd}，${xok?'守住了本心':'没能守住'}。`);
-  if(!xok){ev('trib',{ok:false});fall();S.xinmo=clamp(S.xinmo+10,0,100);L.push(`${T.fail}（跌回${realmName(S.realm)}，重伤三月，心魔 +10）`);logAdd(`${T.name}失败`);result('渡劫失败',L.join('\n\n'));return}
+  if(!xok){ev('trib',{ok:false});const ft=fall();S.xinmo=clamp(S.xinmo+10,0,100);L.push(`${T.fail}（跌回${realmName(S.realm)}，${ft}，心魔 +10）`);logAdd(`${T.name}失败`);result('渡劫失败',L.join('\n\n'));return}
   ev('trib',{ok:true,perfect:!failed});
   if(key==='feisheng'){S.realm=R_FEI;victory(T.win);return}
   S.realm++;S.xiuwei=carryXiu(xiuNeed(S.realm-1));const ga=failed?CFG.tribAttrGain-1:CFG.tribAttrGain;Object.keys(ATTR).forEach(k=>gainAttr(k,ga));
@@ -503,7 +503,10 @@ const raidReq=()=>10+(S.rank-1)*5;
 function raidScene(){ev('raid');const q=raidReq();const lostOf=()=>Math.round(S.silver*0.05);const injN=()=>S.injured>0?S.injured+1:1;
   return {who:me(),tag:'刺客夜袭',bg:'军务',title:'夜半刀光',get text(){return `深夜，王府后院传来瓦片碎裂声，有人摸进来了。\n（防刺客总加成 ${guardBonus()}，拿下需要 ${q}：${guardTxt()}）`},options:[
     {label:'暗哨收网，当场拿下',get hint(){return `需要防刺客加成 ${q}（你 ${guardBonus()}）；奖励：功德 +${Math.round(3*rankMul())}；守卫折损 −${CFG.raidGuardWear}`},reward:true,get disabled(){return guardBonus()<q},run(){logAdd('夜袭的刺客被拿下');S.guard=Math.max(0,S.guard-CFG.raidGuardWear);result('夜袭',`暗哨早有准备，刺客还没摸到书房就被按在了地上。\n（${apply({merit:3})}，守卫 −${CFG.raidGuardWear}）`)}},
-    {label:'惊醒迎敌',get hint(){return `后果：下月起负伤 ${injN()} 个月，库房被劫 银两 −${lostOf()}，守卫折损 −${CFG.raidGuardWear}`},run(){const lost=lostOf();S.injured=injN();S.silver-=lost;S.guard=Math.max(0,S.guard-CFG.raidGuardWear);logAdd('夜袭受伤');result('夜袭',`你从睡梦中惊起，挨了一刀，刺客卷了库房的银子跑了。\n（下月起负伤 ${S.injured} 个月，银两 −${lost}，守卫 −${CFG.raidGuardWear}）`)}}]}}
+    {label:'惊醒迎敌',get hint(){return `后果：下月起负伤 ${injN()} 个月${danTip()}，库房被劫 银两 −${lostOf()}，守卫折损 −${CFG.raidGuardWear}`},run(){const lost=lostOf();const d=useDan();if(!d)S.injured=injN();S.silver-=lost;S.guard=Math.max(0,S.guard-CFG.raidGuardWear);logAdd(d?'夜袭，服下护身丹':'夜袭受伤');result('夜袭',d?`你从睡梦中惊起，刺客一刀砍来，你及时服下护身丹，刀伤转眼收口；刺客卷了库房的银子跑了。\n（服下护身丹，没有受伤；银两 −${lost}，守卫 −${CFG.raidGuardWear}）`:`你从睡梦中惊起，挨了一刀，刺客卷了库房的银子跑了。\n（下月起负伤 ${S.injured} 个月，银两 −${lost}，守卫 −${CFG.raidGuardWear}）`)}}]}}
+/* 护身丹：处决刺客时搜得，下一次要受伤时自动服下，这次不受伤；最多存 CFG.danMax 颗 */
+const useDan=()=>{if((S.dan||0)>0){S.dan--;ev('dan');logAdd('服下护身丹，免去一次伤');return true}return false};
+const danTip=()=>(S.dan||0)>0?`（有护身丹 ${S.dan} 颗，会自动服下抵消）`:'';
 const assassinReq=()=>reqBase()+(S.feud||0)-(S.intel?10:0);
 function assassinPreview(){const gb=guardBonus(),d=assassinReq();return ['wulue','xinji'].map(k=>({k,d,ok:S.attr[k]+gb>=d}))}
 /* 刺客：年末大事里有，平时每月也可能来（第 3 年起）。武类刺客夜里行刺，文类刺客扮成高门子弟登门讨教诗文。才貌出现时就定下 */
@@ -518,15 +521,15 @@ function assassination(monthly){
   queue.push({who:a,tag:monthly?'刺客':'年末大事：刺杀',title:'刺杀',text:`${open}\n（防刺客加成 +${guard}：${guardTxt()}）`,options:[
     {label:'正面迎战',attr:'wulue',hint:needTxt('wulue',d,guard)+'；奖励：擒获刺客',disabled:S.attr.wulue+guard<d,run(){win('wulue')}},
     {label:a.type==='武'?'设局诱擒':'识破伪装，当场拿下',hint:needTxt('xinji',d,guard)+'；奖励：擒获刺客',disabled:S.attr.xinji+guard<d,run(){win('xinji')}},
-    {label:'闭门死守',hint:S.injured>0||S.hurt?'后果：旧伤未愈又添新伤，下月起负伤 6 个月，心魔 +10':'后果：下月起负伤 3 个月，刺客逃走',run(){
-      if(!monthly)ev('ye',false);const old=S.injured>0||!!S.hurt;S.injured=old?6:3;if(old)S.xinmo=clamp(S.xinmo+10,0,100);logAdd('遇刺重伤');result('刺杀',`刀锋入肉，你重伤倒地，刺客趁乱逃走。\n（下月起负伤 ${S.injured} 个月${old?'，心魔 +10':''}）`,a)}}]});
+    {label:'闭门死守',hint:(S.injured>0||S.hurt?'后果：旧伤未愈又添新伤，下月起负伤 6 个月，心魔 +10':'后果：下月起负伤 3 个月，刺客逃走')+danTip(),run(){
+      if(!monthly)ev('ye',false);if(useDan()){result('刺杀',`刀锋入肉，你咬碎护身丹，伤口转眼止血；刺客见杀不了你，趁乱逃走。\n（服下护身丹，没有受伤）`,a);return}const old=S.injured>0||!!S.hurt;S.injured=old?6:3;if(old)S.xinmo=clamp(S.xinmo+10,0,100);logAdd('遇刺重伤');result('刺杀',`刀锋入肉，你重伤倒地，刺客趁乱逃走。\n（下月起负伤 ${S.injured} 个月${old?'，心魔 +10':''}）`,a)}}]});
 }
 function prisonerScene(a,again){
   const ta=a.g==='f'?'她':'他';const full=S.partners.length>=CFG.knownMax;
   return {who:a,title:`处置刺客：${a.name}`,text:(again?`${a.name}再次被押在堂下，眼里全是恨意。`:`刺客${a.name}被押在堂下，一言不发。`)+`\n${assnLook(a)}`,options:[
-    {label:'审问后处决',hint:'猜忌 −10，心魔 +12；对方结仇，以后的刺客更难对付',run(){
-      const m=pick1(['严崇府上','邻藩平阳王','京中某位宗室']);S.feud=(S.feud||0)+3;logAdd(`处决刺客，查出主使是${m}`);
-      result('审问',`几番拷问，刺客吐露主使出自${m}。你把供词收好，人押了下去，再没出来。\n（${apply({suspicion:-10,xinmo:12},null,true)}，以后的刺客难度 +3）`)}},
+    {label:'审问后处决',get hint(){return `猜忌 −10，心魔 +12，搜得护身丹 1 颗（可抵消一次受伤${(S.dan||0)>=CFG.danMax?`；已有 ${CFG.danMax} 颗，到上限了`:''}）；对方结仇，以后的刺客更难对付`},run(){
+      const m=pick1(['严崇府上','邻藩平阳王','京中某位宗室']);S.feud=(S.feud||0)+CFG.feudExec;logAdd(`处决刺客，查出主使是${m}`);const got=(S.dan||0)<CFG.danMax;if(got)S.dan=(S.dan||0)+1;
+      result('审问',`几番拷问，刺客吐露主使出自${m}。你把供词收好，人押了下去，再没出来。从${a.g==='f'?'她':'他'}贴身的暗袋里，搜出一颗护身丹。\n（${apply({suspicion:-10,xinmo:12},null,true)}，${got?`护身丹 +1（现有 ${S.dan} 颗）`:`护身丹已有 ${CFG.danMax} 颗，没法再多带`}，以后的刺客难度 +${CFG.feudExec}）`)}},
     ...(again?[shameOpt(a)]:[
     {label:'严刑逼供',hint:`猜忌 −20，另有一份随机收获；心魔 +${CFG.tortureXinmo}，对方结仇；刺客会逃走，之后连续三个月来报复`,run(){
       S.feud=(S.feud||0)+3;const k=pick1(['silver','xiu',...(S.intel?[]:['intel'])]);let e={suspicion:-20,xinmo:CFG.tortureXinmo},x='';
@@ -549,7 +552,7 @@ const revengeRange=()=>{const b=assassinReq()+CFG.revengeOffset;return [Math.max
 function revengeScene(){const r=S.revenge;const [lo,hi]=revengeRange();const gb=guardBonus();const a={name:r.name,g:r.g,img:r.img,origin:'刺客',type:r.type||'武',cm:r.cm!=null?r.cm:rollCm(CFG.assassinCmHigh,CFG.assassinCmMid)};r.cm=a.cm;const ta=r.g==='f'?'她':'他';
   const fight=k=>{const need=lo+rand(hi-lo+1);const v=S.attr[k]+gb;S.revenge.left--;S.revenge.next=mi()+1;
     if(v>=need){S.revenge=null;logAdd(`再次擒获${r.name}`);queue.unshift(prisonerScene(a,true));result('报复',`【${ATTR[k]} ${S.attr[k]} + 加成 ${gb} = ${v}，${ta}这次的身手 ${need}】\n${ta}又来了，这一次没能走掉。`,a);return}
-    const lost=Math.round(S.silver*0.05);S.silver-=lost;S.injured=Math.max(S.injured,1);let t=`【${ATTR[k]} ${S.attr[k]} + 加成 ${gb} = ${v}，${ta}这次的身手 ${need}】\n${ta}来去如风，你中了一刀，库房也被洗劫。\n（下月起负伤 1 个月，银两 −${lost}）`;
+    const lost=Math.round(S.silver*0.05);S.silver-=lost;const dn=S.injured<1&&useDan();if(!dn)S.injured=Math.max(S.injured,1);let t=`【${ATTR[k]} ${S.attr[k]} + 加成 ${gb} = ${v}，${ta}这次的身手 ${need}】\n${ta}来去如风，你中了一刀，库房也被洗劫。\n（${dn?'服下护身丹，没有受伤':'下月起负伤 1 个月'}，银两 −${lost}）`;
     if(S.revenge.left<=0){S.revenge=null;S.minxin=clamp(S.minxin-CFG.shameMinxin,0,100);S.suspicion=clamp(S.suspicion+CFG.shameSusp,0,100);S.xinmo=clamp(S.xinmo+CFG.shameXinmo,0,100);logAdd(`${r.name}报复得手，威名受损`);
       t+=`\n\n${r.name}临走前在王府门口留下一行字，满城都在传你连一个刺客都拿不住。\n（威名受损：民心 −${CFG.shameMinxin}，猜忌 +${CFG.shameSusp}，心魔 +${CFG.shameXinmo}）`}
     else{logAdd(`${r.name}来报复`);t+=`\n（${ta}还会再来，还剩 ${S.revenge.left} 次）`}
@@ -724,7 +727,7 @@ function monthEnd(){
       L.push(`${p.name}趁夜逃出王府，再没回来（防刺客加成 −5，后宅安宁 −10，心魔 +10）`);logAdd(`${p.name}出逃`)}});
   {const ms=married();const n=ms.length-1;if(n>0&&S.harmony>0){const d=n*CFG.harmonyPerWife+ms.filter(p=>cmMul(p)<1).length;S.harmony=clamp(S.harmony-d,0,100);L.push(`后宅人多事杂：后宅安宁 −${d}`)}}
   if(S.harmony<40&&married().length){S.xinmo=clamp(S.xinmo+CFG.harmonyLowXinmo,0,100);L.push(`后宅不宁：心魔 +${CFG.harmonyLowXinmo}`)}
-  S.partners.filter(p=>p.tid==='assassin'&&p.aff<30&&!p.married).forEach(p=>{if(Math.random()<0.04){S.partners=S.partners.filter(x=>x!==p);S.bodyguard=Math.max(0,(S.bodyguard||0)-5);S.injured=Math.max(S.injured,1);L.push(`护卫${p.name}心怀旧主，夜里行刺后逃走：负伤 1 个月`);logAdd(`${p.name}反水`)}});
+  S.partners.filter(p=>p.tid==='assassin'&&p.aff<30&&!p.married).forEach(p=>{if(Math.random()<0.04){S.partners=S.partners.filter(x=>x!==p);S.bodyguard=Math.max(0,(S.bodyguard||0)-5);const dn=S.injured<1&&useDan();if(!dn)S.injured=Math.max(S.injured,1);L.push(`护卫${p.name}心怀旧主，夜里行刺后逃走：${dn?'服下护身丹，没有受伤':'负伤 1 个月'}`);logAdd(`${p.name}反水`)}});
   courtTick(L);
   if(S.minxin<10){S.lowMinxin++;if(S.lowMinxin>=6){gameOver('民变','封地民心尽失，百姓揭竿而起，王府被付之一炬。');return}}else S.lowMinxin=0;
   if(S.xinmo>=100){S.hiXinmo=(S.hiXinmo||0)+1;if(S.hiXinmo>=CFG.xinmoDeathMonths){gameOver('走火入魔',`心魔满溢${CFG.xinmoDeathMonths}个月，你在一个深夜里经脉逆行，再也没有醒来。`);return}L.push(`心魔已满！再持续 ${CFG.xinmoDeathMonths-S.hiXinmo} 个月就会走火入魔`)}else S.hiXinmo=0;
@@ -1010,10 +1013,12 @@ function roleHTML(){
 文功 ${fmt(S.wengong)}，武功 ${fmt(S.wugong)}（晋升时消耗）</p><div class="btns" style="margin-top:8px"><button class="small" data-a="tab" data-t="log">查看日志（${S.log.length} 条）</button></div></div></div>
   <h4 class="sub">属性（当前上限 ${attrCap()}）</h4><div class="chips">${Object.keys(ATTR).map(k=>ch(ATTR[k],S.attr[k]>=attrCap()?S.attr[k]+' 满':S.attr[k])).join('')}</div>
   <p class="note">属性靠做事培养，每项只由一件事负责：根骨←闭关修炼；悟性←参悟功法；文才←处理公务；心机←巡视民情；武略←剿匪巡境；魅力←结交名士。每次有概率 +1，属性越高越难涨；到当前上限后要突破大境界才能继续。事件的奖励选项要求属性达标。</p>
-  <h4 class="sub">资源</h4><div class="chips">${ch('功德',fmt(S.merit))}${ch('防刺客','+'+guardBonus())}${ch('心魔',S.xinmo,S.xinmo>=50)}${ch('民心',S.minxin,S.minxin<20)}${ch('银两',fmt(S.silver))}${ch('月收入',income())}${ch('月军饷',upkeep())}${ch('私兵',fmt(S.troops))}${ch('训练',S.train)}${ch('战力',fmt(power()))}${ch('朝廷兵力',fmt(S.court))}${ch('兵力比',ratio()+'%')}${ch('猜忌',S.suspicion,S.suspicion>=70)}${ch('后宅安宁',S.harmony,S.harmony<40)}${ch('破障丹',S.pill)}${ch('负伤',S.injured?S.injured+'月':'无',S.injured)}</div>
+  <h4 class="sub">资源</h4><div class="chips">${ch('功德',fmt(S.merit))}${ch('防刺客','+'+guardBonus())}${ch('心魔',S.xinmo,S.xinmo>=50)}${ch('民心',S.minxin,S.minxin<20)}${ch('银两',fmt(S.silver))}${ch('月收入',income())}${ch('月军饷',upkeep())}${ch('私兵',fmt(S.troops))}${ch('训练',S.train)}${ch('战力',fmt(power()))}${ch('朝廷兵力',fmt(S.court))}${ch('兵力比',ratio()+'%')}${ch('猜忌',S.suspicion,S.suspicion>=70)}${ch('后宅安宁',S.harmony,S.harmony<40)}${ch('负伤',S.injured?S.injured+'月':'无',S.injured)}</div>
   <p class="note">道侣上限 ${cap()} 位，已结 ${married().length} 位。
 每月行动力 ${CFG.apMonth} 点（负伤时 ${CFG.apInjured} 点）。
 事件选项：属性达标才能选奖励，达不到只能选惩罚。</p>
+  <h4 class="sub">丹药</h4><div class="chips">${ch('破障丹',S.pill)}${ch('护身丹',`${S.dan||0}/${CFG.danMax}`)}</div>
+  <p class="note">破障丹：突破小境界要用。护身丹：处决刺客时搜得，下次要受伤时自动服下，这次不受伤；最多带 ${CFG.danMax} 颗。</p>
 </div>`;
 }
 function ptnHTML(){
