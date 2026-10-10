@@ -413,8 +413,8 @@ function promoEnd(r,wins){
 }
 /* 第6阶后选路线 */
 function routeScene(){const q=RANK_REQ;return {who:me(),tag:'路线抉择',title:'削藩之后',text:`削藩诏的风波过去，天下都在看你下一步怎么走。\n兵变线晋升看兵力比（${q[7].a}%→${q[10].a}%），起兵后不再有猜忌，但年年征讨。民心线晋升看民心（${q[7].b}→${q[10].b}），不动刀兵，猜忌一直都在。选定后不能更改。`,options:[
-  {label:'兵变线：起兵靖难',hint:'晋升武功要求高、看兵力比；武功、私兵来得快，心魔、民心代价大',run(){S.route='a';logAdd('选择兵变线');result('起兵','你把削藩诏扔进了火盆。帐外，私兵们磨刀的声音彻夜不停。')}},
-  {label:'民心线：万民归心',hint:`晋升文功要求高、看民心；文功、功德来得多，猜忌压力大。民心 ${CFG.routeBSuspLo} 以上猜忌每月自然下降，每次晋升猜忌 −${CFG.routeBPromoSusp}`,run(){S.route='b';logAdd('选择民心线');result('归心','你把削藩诏供在案上，第二天开仓放粮、减租三成。消息一路传到了玉京。')}}]}}
+  {cls:'route',label:'兵变线：起兵靖难',hint:'晋升武功要求高、看兵力比；武功、私兵来得快，心魔、民心代价大',run(){queue.unshift(confirmScene(me(),'确定走兵变线？','你确定要起兵靖难，走兵变线吗？\n选定后不能更改。',{label:'确定走兵变线',hint:'选定后不能更改',run(){S.route='a';logAdd('选择兵变线');result('起兵','你把削藩诏扔进了火盆。帐外，私兵们磨刀的声音彻夜不停。')}},routeScene))}},
+  {cls:'route',label:'民心线：万民归心',hint:`晋升文功要求高、看民心；文功、功德来得多，猜忌压力大。民心 ${CFG.routeBSuspLo} 以上猜忌每月自然下降，每次晋升猜忌 −${CFG.routeBPromoSusp}`,run(){queue.unshift(confirmScene(me(),'确定走民心线？','你确定要万民归心，走民心线吗？\n选定后不能更改。',{label:'确定走民心线',hint:'选定后不能更改',run(){S.route='b';logAdd('选择民心线');result('归心','你把削藩诏供在案上，第二天开仓放粮、减租三成。消息一路传到了玉京。')}},routeScene))}}]}}
 
 /* ================= 渡劫 ================= */
 /* 渡劫：三道天雷的根骨要求 = 基准（上限的 70% / 85% / 100%）上下浮动，渡劫时才揭晓；道侣阵法 −5。
