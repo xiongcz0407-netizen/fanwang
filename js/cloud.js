@@ -1,4 +1,4 @@
-const APP_V=112;   // 打包时写入的版本号
+const APP_V=113;   // 打包时写入的版本号
 /* ================= 云端存档 =================
    用户名 + 6 位口令登录，每个用户 3 个存档位，存档放在 GitHub 私有仓库里（读写接口见 ghsave.js，它会替换下面的 cloudApi / cloudBeacon）。
    本机仍然保留一份当前存档（xw_save），断网时照常玩，联网后下次保存会自动补传。
@@ -28,15 +28,28 @@ const fmtTime=t=>{if(!t)return '';const d=new Date(t);return `${d.getMonth()+1}�
 
 /* 保存后自动传到云端（等 1.5 秒合并连续的保存） */
 function cloudAfterSave(){if(!cloudOn()||!S||!cloudCan())return;clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudPush,Math.max(1500,cloudLastPush+cloudMinGap-Date.now()))}
+/* 只是保存时间变了、内容没变，就不用再传 */
+const cloudSame=(a,b)=>!!b&&a.replace(/"savedAt":\d+,?/,'')===b.replace(/"savedAt":\d+,?/,'');
 async function cloudPush(force){
   if(!cloudOn()||!S||!cloudCan())return;
-  const data=JSON.stringify(S);if(!force&&data===cloudPushed)return;cloudLastPush=Date.now();
-  try{const j=await cloudApi('save',{slot:SLOT,data,brief:cloudBrief(S),meta:typeof achExport==='function'?achExport():undefined});
+  const data=JSON.stringify(S);if(!force&&cloudSame(data,cloudPushed))return;cloudLastPush=Date.now();
+  try{const m0=LS.get('xw_savemeta');const j=await cloudApi('save',{slot:SLOT,data,brief:cloudBrief(S),base:(m0&&m0.savedAt)||0,meta:typeof achExport==='function'?achExport():undefined});
     if(j.ok){cloudPushed=data;cloudLast={ok:true,at:j.savedAt,err:''};LS.set('xw_savemeta',{name:ACCT.name,slot:SLOT,savedAt:j.savedAt})}
-    else cloudLast={ok:false,at:Date.now(),err:j.err};
+    else{cloudLast={ok:false,at:Date.now(),err:j.err};if(j.err==='conflict')cloudConflict(j,data)}
   }catch(e){cloudLast={ok:false,at:Date.now(),err:'net'}}
   if(tab==='save')render();
 }
+/* 存档冲突：云端这个存档位被别的设备更新过。不自动覆盖，让玩家选用哪一份 */
+let cloudConflictOn=false;
+function cloudConflict(j,data){if(cloudConflictOn)return;cloudConflictOn=true;clearTimeout(cloudTimer);
+  let c=null;try{c=j.data?JSON.parse(j.data):null}catch(e){}const mine=JSON.parse(data);
+  const pickCloud=()=>{cloudConflictOn=false;const o=migrate(c);if(!o){cloudMsg='云端存档读不出来。';title=true;cloudSlots=null;render();return}S=o;queue=[];LS.set('xw_save',S);LS.set('xw_savemeta',{name:ACCT.name,slot:SLOT,savedAt:(j.cloud&&j.cloud.savedAt)||0});cloudPushed=JSON.stringify(S);tab='play';render()};
+  const keepMine=()=>{cloudConflictOn=false;LS.set('xw_savemeta',{name:ACCT.name,slot:SLOT,savedAt:(j.cloud&&j.cloud.savedAt)||0});cloudPush(true)};
+  queue.unshift({who:me(),tag:'存档冲突',title:'云端有另一份进度',text:`这个存档位在别的设备（或别的浏览器）上更新过，和这台设备上的进度不一样。为了不把进度盖掉，这台设备暂时没有上传。\n\n云端：${c?saveBrief(c):(j.cloud&&j.cloud.brief)||'未知'}（${fmtTime(j.cloud&&j.cloud.savedAt)}）\n这台设备：${saveBrief(mine)}\n\n选一份接着玩。没选的那份会另存一份备份，需要时可以找作者帮你找回。`,
+    options:[{label:'读取云端的进度',hint:c?saveBrief(c):'',run(){cloudArchiveMine(data);pickCloud()}},{label:'用这台设备的进度',hint:`${saveBrief(mine)}；云端那份另存备份后覆盖`,run(){cloudArchiveCloud(j.data);keepMine()}}]});
+  tab='play';render()}
+const cloudArchiveMine=d=>{if(typeof ghArchiveData==='function')ghArchiveData(d).catch(()=>{})};
+const cloudArchiveCloud=d=>{if(d&&typeof ghArchiveData==='function')ghArchiveData(d).catch(()=>{})};
 /* 关页面前：用 sendBeacon 把最后一次存档发出去 */
 function cloudBeacon(){if(!cloudOn()||!S||!cloudCan()||!navigator.sendBeacon)return;const data=JSON.stringify(S);if(data===cloudPushed)return;
   try{navigator.sendBeacon('/api/save',new Blob([JSON.stringify({op:'save',name:ACCT.name,pin:ACCT.pin,slot:SLOT,data,brief:cloudBrief(S)})],{type:'application/json'}));cloudPushed=data}catch(e){}}
@@ -61,9 +74,9 @@ async function cloudPick(i){
     /* 本机缓存的是同一个存档位、而且比云端新（比如上次断网），就用本机的，再补传 */
     const meta=LS.get('xw_savemeta'),loc=LS.get('xw_save');
     if(loc&&meta&&meta.name===ACCT.name&&meta.slot===i&&(!o||(loc.savedAt||0)>(o.savedAt||0)))o=loc;
-    o=migrate(o);
+    const useLoc=o===loc;const cs=(j.meta&&j.meta.savedAt)||0;o=migrate(o);
     if(!o){cloudMsg='这个存档读不出来（可能是旧版本的存档）。';render();return}
-    S=o;queue=[];SLOT=i;LS.set('xw_slot',i);LS.set('xw_save',S);LS.set('xw_savemeta',{name:ACCT.name,slot:i,savedAt:S.savedAt||0});cloudPushed='';
+    S=o;queue=[];SLOT=i;LS.set('xw_slot',i);LS.set('xw_save',S);LS.set('xw_savemeta',{name:ACCT.name,slot:i,savedAt:useLoc?(meta.savedAt||0):cs});cloudPushed=useLoc?'':JSON.stringify(S);   // 从云端读的、没改动就不必再传一遍（免得把别的设备挤成「冲突」）
     cloudMsg='';title=false;titleSub='';tab='play';render();cloudPush();
   }catch(e){cloudBusy=false;cloudMsg=cloudErrTxt('net');render()}
 }

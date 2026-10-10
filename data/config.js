@@ -13,7 +13,7 @@ const DEFAULT_CFG={
   // 渡劫消耗功德（基础值，会按阶段放大显示）
   meritZhu:250,meritJin:450,meritYuan:1500,meritHua:4000,meritLian:1000,meritHe:7000,meritDa:1000,meritFei:10500,tribAttrGain:2,xinmoStop:60,xinmoNoBreak:80,tribDiffPerMajor:0.35,
   // 帝业：每升一阶，奖励放大 rankScale（第1阶×1，第10阶×5.5）
-  rankScale:0.5,lingPerRank:0.15,promoFailLoss:15,promoBribeRate:40,danMax:2,feudExec:2,promoReqPlus:6,
+  rankScale:0.5,lingPerRank:0.15,promoFailLoss:15,promoBribeRate:40,danMax:2,dualSilverStop:3,dualWen:60,dualWu:55,feudExec:2,promoReqPlus:6,
   // 经济
   incomeBase:70,incomePerMinxin:1.0,incomeRankScale:0.1,industryPerRank:65,industryDouble:0.5,upkeepPer100:1.5,freeTroopsPerRank:1500,minxinDecay:1,minxinDecayStep:25,minxinDecayPer3Rank:1,minxinDecayRatio:40,
   // 兵力
@@ -35,7 +35,7 @@ const CFGL={startAttr:'开局属性',startSilver:'开局银两',startTroops:'开
   retreatBase:'闭关基础修为',naturalPerGengu:'每点根骨月修为',dualMul:'双修倍率（已停用）',dualHigherBonus:'道侣境界高加成（已停用）',studyXiuwei:'参悟功法修为',
   normalBase:'普通突破基础%',normalGengu:'普通突破根骨系数',normalCap:'突破成功率上限%',bottleBase:'瓶颈突破基础%',bottleGengu:'瓶颈根骨系数',bottleWuxing:'瓶颈悟性系数',pillBonus:'破障丹加成%',pillWuxingStep:'悟性每多少点一炉多出1颗丹',pillCost:'破障丹价格',pillRepeat2:'同月第2炉价格倍数',pillRepeat3:'同月第3炉起价格倍数',
   meritZhu:'筑基耗功德',meritJin:'金丹耗功德',meritYuan:'元婴耗功德',meritHua:'化神耗功德',meritLian:'炼虚耗功德',meritHe:'合体耗功德',meritDa:'大乘耗功德',meritFei:'飞升耗功德',tribAttrGain:'渡劫成功全部属性提升（没完美渡劫少 1）',tribDiffPerMajor:'每大境界渡劫难度增幅',xinmoStop:'心魔停滞线',xinmoNoBreak:'心魔禁渡劫线',
-  rankScale:'每阶奖励放大',promoFailLoss:'晋升失败文功武功损失%',promoBribeRate:'晋升打点价格=该阶晋升银两的%',danMax:'护身丹最多存几颗',feudExec:'处决刺客后以后刺客难度+几',promoReqPlus:'第5阶起晋升关卡属性要求额外加几',lingPerRank:'每阶修行灵脉加成',incomeBase:'月收入基数',incomePerMinxin:'每点民心收入',incomeRankScale:'每阶收入增幅',industryPerRank:'产业价格基准(×帝业阶)',industryDouble:'产业每多几份基准价格翻倍',freeTroopsPerRank:'每阶免饷府兵人数',upkeepPer100:'每百私兵月军饷',minxinDecayStep:'民心每多少点每月多掉1',minxinDecay:'民心每月自然下降',minxinDecayPer3Rank:'每5阶民心多降',minxinDecayRatio:'兵力比每几%民心多降1',
+  rankScale:'每阶奖励放大',promoFailLoss:'晋升失败文功武功损失%',promoBribeRate:'晋升打点价格=该阶晋升银两的%',danMax:'护身丹最多存几颗',dualSilverStop:'银两到下一阶晋升银两的几倍，双修不再给银两',dualWen:'双修给文功（基础）',dualWu:'双修给武功（基础）',feudExec:'处决刺客后以后刺客难度+几',promoReqPlus:'第5阶起晋升关卡属性要求额外加几',lingPerRank:'每阶修行灵脉加成',incomeBase:'月收入基数',incomePerMinxin:'每点民心收入',incomeRankScale:'每阶收入增幅',industryPerRank:'产业价格基准(×帝业阶)',industryDouble:'产业每多几份基准价格翻倍',freeTroopsPerRank:'每阶免饷府兵人数',upkeepPer100:'每百私兵月军饷',minxinDecayStep:'民心每多少点每月多掉1',minxinDecay:'民心每月自然下降',minxinDecayPer3Rank:'每5阶民心多降',minxinDecayRatio:'兵力比每几%民心多降1',
   courtStart:'朝廷兵力开局',courtGrowth:'朝廷兵力年增长',warChance:'每年朝廷打仗概率',warLossMin:'打仗损兵最少%',warLossMax:'打仗损兵最多%',warRecover:'战后每月恢复%',
   recruitMin:'投奔民心门槛',recruitOffset:'投奔民心偏移',recruitMul:'投奔倍率(再×人口)',desertBelow:'逃散民心线',desertRate:'逃散比例',
   suspPerRatio:'兵力比每几%月猜忌+1',bribeBase:'打点基础价',bribePerRatio:'兵力比每1%打点加价',bribeCap:'打点价上限(×帝业倍率)',bribeDrop:'打点降猜忌',

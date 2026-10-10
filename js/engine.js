@@ -292,8 +292,10 @@ const typeTxt=p=>`${p.type}类`;
 const typeUse=p=>p.type==='武'?'双修更容易得到修为、武功、防刺客、疗伤、渡劫阵法；防刺客加成较多；护法时让没挡住的天雷伤得轻一些。':'双修更容易得到银两、文功、降猜忌、功德；防刺客加成较少；护法时帮你过悟道这一关。';
 const specOf=p=>{if(!p.spec||!SPEC[p.spec])p.spec=pick1(Object.keys(SPEC).filter(k=>SPEC[k].t===p.type));return SPEC[p.spec]};
 const dualMulOf=p=>(0.5+p.aff/100)*cmMul(p);
+/* 双修给银两：手里的钱越多越少给；到下一阶晋升银两的 dualSilverStop 倍（登基后按第 10 阶算）就不再给 */
+const dualSilverF=()=>{const q=RANK_REQ[Math.min(S.rank+1,10)];const need=q?(S.route==='b'&&q.silverB?q.silverB:q.silver):0;return need?Math.max(0,1-S.silver/(CFG.dualSilverStop*need)):1};
 function dualPool(p){const stop=S.xinmo>=CFG.xinmoStop;const ok={xiu:!stop&&S.xiuwei<xiuNeed(S.realm)*CFG.xiuBank,bing:!stop,zheng:!stop,yi:S.injured>0||!!S.hurt,jian:S.guard<CFG.guardMax,mou:S.suspicion>0||(S.route==='a'&&S.rank>=7),zhen:!S.zhen&&S.realm<R_FEI};
-  const r=Object.keys(SPEC).filter(k=>ok[k]!==false).map(k=>[k,SPEC[k].t===p.type?3:2]);
+  const r=Object.keys(SPEC).filter(k=>ok[k]!==false).map(k=>[k,(SPEC[k].t===p.type?3:2)*(k==='shang'?dualSilverF():1)]).filter(x=>x[1]>0);
   if(isAssassin(p)&&(S.suspicion>0&&!(S.route==='a'&&S.rank>=7)))r.push(['ansha',3]);return r}
 const isAssassin=p=>p.tid==='assassin';
 /* 聘礼：按才貌和帝业算 */
@@ -310,12 +312,12 @@ function dualDraw(p){
   const R=CFG.retreatBase*lingMul(),n=v=>Math.round(v*m);let e,t,extra='';
   switch(k){
     case 'xiu':e={xiuwei:n(R*2)};t=`红烛高照，你与${p.name}结发同修，灵力在两人经脉间往复流转。`;break;
-    case 'bing':e={wugong:n(40)};t=`${p.name}替你把私兵从头到尾操练了一遍。`;break;
+    case 'bing':e={wugong:n(CFG.dualWu)};t=`${p.name}替你把私兵从头到尾操练了一遍。`;break;
     case 'jian':e={guard:Math.min(CFG.guardMax-S.guard,n(8))};t=`${p.name}亲自给府中护院指点剑法，又重排了夜里的岗哨。`;break;
     case 'zhen':S.zhen=1;e={};t=`${p.name}在静室四周布下护身阵法。`;extra='下次渡劫，三道天雷的根骨要求各 −5';break;
     case 'yi':e={};S.injured=0;S.hurt=false;t=`${p.name}替你行针换药，旧伤一夜之间好了大半。`;extra='伤势痊愈';break;
     case 'shang':e={silver:n(200)};t=`${p.name}替你盘了一遍产业的账，又谈下几笔好买卖。`;break;
-    case 'zheng':e={wengong:n(45)};t=`${p.name}替你理清了几桩积压的公文，见解比属官还老道。`;break;
+    case 'zheng':e={wengong:n(CFG.dualWen)};t=`${p.name}替你理清了几桩积压的公文，见解比属官还老道。`;break;
     case 'mou':e={suspicion:-n(8)};t=`${p.name}给京中故旧写了几封信，替你说了几句好话。`;break;
     case 'shan':e={merit:n(25)};t=`${p.name}以你的名义在城外施粥济贫。`;break;
     case 'ansha':e={suspicion:-15};t=`${p.name}消失了两夜。回来时一言不发，京中却传来一位政敌暴毙的消息。`;break;
@@ -381,12 +383,11 @@ const rankGap=r=>S.rank>=r?`帝业${rankLbl(r)}（已达到）`:`帝业${rankLbl
 const promoKey=r=>r<=6?String(r):r+(S.route||'a');
 function promoNeed(r){const q=RANK_REQ[r];if(!q)return null;
   const rt=S.route||'a';const o={wen:r>=7?(rt==='a'?q.wenA:q.wenB):q.wen,wu:r>=7?(rt==='a'?q.wuA:q.wuB):q.wu,silver:(r>=7&&rt==='b'&&q.silverB)?q.silverB:q.silver,minxin:q.minxin,realm:q.realm};
-  o.acts=CFG.promoActBase+CFG.promoActPerRank*r;
   if(r>=7){if(S.route==='a')o.ratio=q.a;else o.minxin=Math.max(o.minxin,q.b)}return o}
 /* 上次晋升以来做了多少次治理、军务 */
 const actsSince=d=>(S.stat[d]||0)-((S.statP&&S.statP[d])||0);
 function promoReady(r){const q=promoNeed(r);if(!q)return false;
-  return S.wengong>=q.wen&&S.wugong>=q.wu&&S.silver>=q.silver&&S.minxin>=q.minxin&&S.realm>=q.realm&&(q.ratio==null||ratio()>=q.ratio)&&actsSince('治理')>=q.acts&&actsSince('军务')>=q.acts}
+  return S.wengong>=q.wen&&S.wugong>=q.wu&&S.silver>=q.silver&&S.minxin>=q.minxin&&S.realm>=q.realm&&(q.ratio==null||ratio()>=q.ratio)}
 const promoBribe=r=>Math.round((RANK_REQ[r]?RANK_REQ[r].silver:0)*CFG.promoBribeRate/100/50)*50;
 function startPromo(r){
   const P=PROMO2[promoKey(r)];let wins=0;const n=P.steps.length;
@@ -621,7 +622,7 @@ function chipsHTML(it){const und=it.filter(x=>!x.done&&x.pct<=1);const low=und.l
 const CH_ORDER=[0,1,2,3,4,5,6,8,7,9,10,11,12,13,14,15,16];
 const CH_REWARD=[null,{silver:200},{silver:400},{silver:400,merit:20},{silver:200,merit:30},{silver:500},{silver:700},{silver:800},{silver:200,merit:50},
  {silver:800,merit:60},{silver:1000},{silver:1000,merit:80},{silver:200,merit:100},{silver:1500},{merit:150},{merit:200},{}];
-function promoProg(r){const q=promoNeed(r);if(!q)return '';const L=[`文功 ${fmt(S.wengong)}/${fmt(q.wen)}`,`武功 ${fmt(S.wugong)}/${fmt(q.wu)}`,`银两 ${fmt(S.silver)}/${fmt(q.silver)}`,`民心 ${S.minxin}/${q.minxin}`,`${realmName(S.realm)}/${realmName(q.realm)}`,`上次晋升后治理 ${actsSince('治理')}/${q.acts} 次、军务 ${actsSince('军务')}/${q.acts} 次`];
+function promoProg(r){const q=promoNeed(r);if(!q)return '';const L=[`文功 ${fmt(S.wengong)}/${fmt(q.wen)}`,`武功 ${fmt(S.wugong)}/${fmt(q.wu)}`,`银两 ${fmt(S.silver)}/${fmt(q.silver)}`,`民心 ${S.minxin}/${q.minxin}`,`${realmName(S.realm)}/${realmName(q.realm)}`];
   if(r===7&&!S.route)L.push('第6阶后选择路线');if(q.ratio!=null)L.push(`兵力比 ${ratio()}%/${q.ratio}%`);return L.join('，')}
 const chap=()=>CHAPTERS[CH_ORDER[S.chap]-1];
 function chapterCheck(){
@@ -977,7 +978,7 @@ function questHTML(){
 /* ================= 帝业页：晋升下一阶每项要多少、有多少、差多少 ================= */
 function empItems(r){const q=promoNeed(r);if(!q)return [];
   const it=[['文功（处理公务、巡视民情、事件）',S.wengong,q.wen,fmt],['武功（剿匪巡境、事件）',S.wugong,q.wu,fmt],['银两（晋升时扣除）',S.silver,q.silver,fmt],['民心（门槛，不扣）',S.minxin,q.minxin,x=>x],
-    ['境界（门槛）',S.realm,q.realm,x=>realmName(Math.min(x,R_TOP))],['上次晋升后的治理次数',actsSince('治理'),q.acts,x=>x+' 次'],['上次晋升后的军务次数',actsSince('军务'),q.acts,x=>x+' 次']];
+    ['境界（门槛）',S.realm,q.realm,x=>realmName(Math.min(x,R_TOP))]];
   if(q.ratio!=null)it.push(['兵力比（兵变线门槛）',ratio(),q.ratio,x=>x+'%']);
   return it.map(([l,v,n,f])=>({l,v,n,f,pct:Math.min(1,n>0?v/n:1)}))}
 function empHTML(){
@@ -997,7 +998,7 @@ function empHTML(){
   <p class="note">帝业越高：收入越多、事件奖励越大、修炼越快；但事件要求越高，权欲带来的心魔也越重。</p></div>
   ${next}
   <h4 class="sub">晋升怎么进行</h4><div class="qcard"><p class="note">所有条件都达到后，月初触发晋升大事件，三关过两关就晋升。契机出现时也可以选择暂缓，想升的时候再到这里上表。
-晋升成功：扣掉这一阶要求的文功、武功和银两（民心、境界、次数只看门槛）。
+晋升成功：扣掉这一阶要求的文功、武功和银两（民心、境界只看门槛）。
 晋升失利：损失一部分文功和武功，猜忌上升，几个月后才能再试。
 每一关都看一项属性，达标就过；三关考的属性各不相同。</p></div>
   <h4 class="sub">路线</h4><div class="qcard"><p class="note">${S.route==='a'?'你走的是兵变线：武功要求高，还要兵力比。起兵后朝廷不再猜忌你，但战乱更多，养兵扰民。':S.route==='b'?'你走的是民心线：文功、民心要求高，也更费银两。猜忌一直都在；民心够高时百姓会替你请命，每次晋升朝廷也会安抚。':'第 6 阶之后要在兵变线和民心线之间选一条，选了不能改。\n兵变线：武功要求高，还要兵力比；起兵后不再有猜忌，但战乱更多。\n民心线：文功、民心要求高，更费银两；猜忌一直都在，靠民心和晋升压下去。'}</p></div>

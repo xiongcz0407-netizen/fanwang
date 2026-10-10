@@ -45,6 +45,11 @@ const ghSavePath=(u,slot)=>`saves/${u.id}_${slot}.json`;
 async function ghArchive(path){const t=await ghGet(path);if(!t)return;const d=new Date(),p2=n=>String(n).padStart(2,'0');
   const ts=`${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
   await ghPut(`saves/arch_${ts}_${Math.random().toString(36).slice(2,8)}.json`,t,'archive')}
+/* 重新读一次用户文件：别的设备可能改过存档位 */
+async function ghFresh(a){const t=await ghGet(a.path);if(t)try{a.u=JSON.parse(t)}catch(e){}}
+/* 存档冲突时，没选的那一份另存成匿名备份 */
+async function ghArchiveData(t){const d=new Date(),p2=n=>String(n).padStart(2,'0');const ts=`${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
+  await ghPut(`saves/arch_${ts}_${Math.random().toString(36).slice(2,8)}.json`,t,'archive conflict')}
 const gidOf=data=>{const m=/"gid":"([^"]+)"/.exec(data);return m?m[1]:''};
 
 /* cloud.js 调用的接口：login / load / save / del */
@@ -55,9 +60,11 @@ async function cloudApi(op,extra){
     const slot=extra.slot|0;
     if(op==='login')return {ok:true,slots:a.u.slots,created:a.created,meta:a.u.meta||null};
     if(slot<0||slot>=CLOUD_SLOTS)return {ok:false,err:'input'};
-    if(op==='load'){const d=await ghGet(ghSavePath(a.u,slot));return {ok:true,data:d,meta:a.u.slots[slot]}}
+    if(op==='load'){await ghFresh(a);const d=await ghGet(ghSavePath(a.u,slot));return {ok:true,data:d,meta:a.u.slots[slot]}}
     if(op==='save'){const data=String(extra.data||'');if(data.length>900000)return {ok:false,err:'size'};
-      const at=Date.now(),gid=gidOf(data),old=a.u.slots[slot];
+      await ghFresh(a);const at=Date.now(),gid=gidOf(data),old=a.u.slots[slot],base=+extra.base||0;
+      /* 防覆盖：这个存档位在本机上次同步之后，被别的设备写过（云端更新），就不覆盖，交给玩家选。开新局（base 为 0 且局号不同）照常 */
+      if(old&&(old.savedAt||0)>base&&!(base===0&&old.gid&&gid&&old.gid!==gid)){const cd=await ghGet(ghSavePath(a.u,slot));return {ok:false,err:'conflict',cloud:old,data:cd}}
       if(old&&old.gid&&gid&&old.gid!==gid)await ghArchive(ghSavePath(a.u,slot));   // 这个存档位换了一局：先把旧的存成匿名文件
       await ghPut(ghSavePath(a.u,slot),data,'save');
       a.u.slots[slot]={brief:String(extra.brief||'').slice(0,80),savedAt:at,gid};
